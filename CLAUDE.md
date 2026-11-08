@@ -25,6 +25,9 @@
 
 - **決定性を守る:** シード固定、ソルバ設定固定(`num_workers=1`、タイムリミット固定)。
 - 構成: Pythonコア → JSONL → TypeScript静的ビューア → GitHub Pages。
+- **ツールは仮想環境に閉じる:** Python は `uv`、Node は `.venv` に導入する
+  (`.node-version` で固定、`scripts/setup-node.sh`)。コマンドは `uv run …` 経由で実行し、
+  グローバルにインストールしない。
 - C4はDSLで書き、設計判断は ADR(`docs/adr/NNNN-タイトル.md`)に残す。
   計画や範囲を変えるときは、README と ADR を更新する。
 - テスト: 全ソルバ共通の契約テスト、property-based test

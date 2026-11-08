@@ -1,0 +1,15 @@
+{
+  "name": "mrta-c4",
+  "private": true,
+  "description": "mrta の C4 モデル(LikeC4)",
+  "scripts": {
+    "validate": "likec4 validate .",
+    "build": "likec4 build -o dist ."
+  },
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "devDependencies": {
+    "likec4": "1.60.0"
+  }
+}

@@ -1,0 +1,35 @@
+model {
+  developer = person '開発者(学習者)' {
+    description 'シナリオを作り、ソルバを実装・比較し、結果をスマホ等で閲覧する'
+  }
+
+  mrta = softwareSystem 'mrta' {
+    description '異種ロボット(AMR + モバイルマニピュレーター)のタスク割当ソルバ比較シミュレータ'
+
+    core = container 'Pythonコア' {
+      technology 'Python'
+      description 'シナリオ生成、ソルバ(貪欲法・ハンガリアン法・CP-SAT等)、シミュレーション、指標算出、ベンチマーク'
+    }
+    logs = datastore 'JSONLログ' {
+      technology 'JSONL'
+      description 'シナリオ・割当・実行の記録。コアとビューアの間のデータ契約'
+    }
+    viewer = container '静的ビューア' {
+      technology 'TypeScript'
+      description '2画面同期のリプレイと指標の比較表示。ブラウザ内で完結する'
+    }
+
+    developer -> core 'CLIで実行する'
+    core -> logs '書き出す'
+    viewer -> logs '読み込む'
+  }
+
+  github = externalSystem 'GitHub' {
+    description 'ソース管理、PR、CI(Actions)、静的ホスティング(Pages)'
+  }
+
+  developer -> viewer 'ブラウザで閲覧する'
+  developer -> github 'PRを出す'
+  github -> core 'CIでlint・型・テストを実行する'
+  github -> viewer 'ビューアとログをPagesで配信する'
+}

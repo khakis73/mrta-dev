@@ -42,7 +42,7 @@
 - [x] ADR-0001: ブランチ戦略とバージョニング
 - [x] ADR-0002: C4のDSL選定(LikeC4を採用)
 - [x] Python骨組み(`uv` + `ruff` + `mypy` + `pytest`)と、空でも緑になるCI
-- [ ] C4 Context/Container図(DSL)
+- [x] C4 Context/Container図(DSL)
 - [ ] TypeScriptの空ビューア + GitHub Pages公開
 - [ ] ブランチ保護の設定(最初のCI成功後、GitHubのSettingsで手動)
 

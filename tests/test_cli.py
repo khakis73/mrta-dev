@@ -2,10 +2,11 @@ from pathlib import Path
 
 import pytest
 
+from mrta.catalog import SCENARIOS
 from mrta.cli import main
 from mrta.logio import check_log_structure, render_log
 from mrta.scenario import GeneratorConfig, generate
-from mrta.solvers import GreedySolver
+from mrta.solvers import GreedySolver, HungarianSolver
 
 
 def test_run_writes_the_same_log_as_the_library(tmp_path: Path) -> None:
@@ -44,4 +45,27 @@ def test_invalid_scenario_options_exit_with_code_2(capsys: pytest.CaptureFixture
 def test_unknown_solver_is_rejected_by_argparse() -> None:
     with pytest.raises(SystemExit) as e:
         main(["run", "--seed", "0", "--solver", "nope"])
+    assert e.value.code == 2
+
+
+def test_scenario_option_writes_the_catalog_scenario(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["run", "--scenario", "greedy-trap", "--solver", "hungarian"]) == 0
+    assert capsys.readouterr().out == render_log(SCENARIOS["greedy-trap"](), HungarianSolver())
+
+
+def test_scenario_and_seed_are_exclusive() -> None:
+    with pytest.raises(SystemExit) as e:
+        main(["run", "--scenario", "greedy-trap", "--seed", "0", "--solver", "greedy"])
+    assert e.value.code == 2
+
+
+def test_scenario_rejects_generator_options() -> None:
+    with pytest.raises(SystemExit) as e:
+        main(["run", "--scenario", "greedy-trap", "--solver", "greedy", "--tasks", "3"])
+    assert e.value.code == 2
+
+
+def test_seed_or_scenario_is_required() -> None:
+    with pytest.raises(SystemExit) as e:
+        main(["run", "--solver", "greedy"])
     assert e.value.code == 2

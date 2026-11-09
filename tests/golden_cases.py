@@ -8,17 +8,27 @@ Python のテスト(バイト一致)と、ビューアのテスト(同じファ�
 from dataclasses import dataclass
 from pathlib import Path
 
-from mrta.scenario import GeneratorConfig
+from mrta.catalog import SCENARIOS
+from mrta.model import Scenario
+from mrta.scenario import GeneratorConfig, generate
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
 
 
 @dataclass(frozen=True)
 class GoldenCase:
+    """固定シードの生成シナリオ、または名前つきの手作りシナリオ(`catalog`)のどちらか。"""
+
     name: str
-    seed: int
-    config: GeneratorConfig
     solver: str
+    seed: int = 0
+    config: GeneratorConfig = GeneratorConfig()
+    catalog: str | None = None
+
+    def scenario(self) -> Scenario:
+        if self.catalog is not None:
+            return SCENARIOS[self.catalog]()
+        return generate(self.seed, self.config)
 
     @property
     def path(self) -> Path:
@@ -33,4 +43,7 @@ CASES = (
         solver="greedy",
     ),
     GoldenCase(name="default-greedy", seed=1, config=GeneratorConfig(), solver="greedy"),
+    # 手作りシナリオ: 同じシナリオを2つのソルバで解いた対(ビューアの2画面比較の契約テスト用)。
+    GoldenCase(name="greedy-trap-greedy", catalog="greedy-trap", solver="greedy"),
+    GoldenCase(name="greedy-trap-hungarian", catalog="greedy-trap", solver="hungarian"),
 )

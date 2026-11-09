@@ -1,0 +1,9 @@
+{"schema_version":1,"type":"header"}
+{"height":10,"robots":[{"capacity":5,"id":"r0","kind":"amr","skills":["carry"],"speed":1,"start":[0,0]},{"capacity":5,"id":"r1","kind":"amr","skills":["carry"],"speed":1,"start":[8,0]}],"seed":0,"tasks":[{"demand":1,"id":"t0","location":[3,0],"required_skill":"carry","service_time":1},{"demand":1,"id":"t1","location":[0,3],"required_skill":"carry","service_time":1}],"type":"scenario","width":10}
+{"config":{},"name":"hungarian","type":"solver"}
+{"routes":{"r0":["t1"],"r1":["t0"]},"type":"plan"}
+{"from":[0,0],"kind":"move","robot":"r0","t0":0,"t1":3,"task":"t1","to":[0,3],"type":"segment"}
+{"from":[8,0],"kind":"move","robot":"r1","t0":0,"t1":5,"task":"t0","to":[3,0],"type":"segment"}
+{"from":[0,3],"kind":"service","robot":"r0","t0":3,"t1":4,"task":"t1","to":[0,3],"type":"segment"}
+{"from":[3,0],"kind":"service","robot":"r1","t0":5,"t1":6,"task":"t0","to":[3,0],"type":"segment"}
+{"available_total":12,"busy_total":10,"makespan":6,"per_robot":{"r0":{"busy":4,"distance":3,"finish":4},"r1":{"busy":6,"distance":5,"finish":6}},"total_distance":8,"type":"metrics"}

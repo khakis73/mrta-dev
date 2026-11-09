@@ -8,8 +8,9 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from mrta.catalog import SCENARIOS
 from mrta.logio import render_log, write_log
-from mrta.model import ModelError
+from mrta.model import ModelError, Scenario
 from mrta.scenario import GeneratorConfig, generate
 from mrta.solvers import SOLVERS
 
@@ -20,40 +21,56 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     run = commands.add_parser("run", help="シナリオを生成して解き、ログ(JSONL)を書き出す")
-    run.add_argument("--seed", type=int, required=True, help="シナリオのシード")
+    source = run.add_mutually_exclusive_group(required=True)
+    source.add_argument("--seed", type=int, help="生成するシナリオのシード")
+    source.add_argument("--scenario", choices=sorted(SCENARIOS), help="手作りシナリオの名前")
     run.add_argument("--solver", choices=sorted(SOLVERS), required=True)
     run.add_argument("--out", type=Path, help="出力ファイル(省略時は標準出力)")
-    run.add_argument("--width", type=int, default=defaults.width)
-    run.add_argument("--height", type=int, default=defaults.height)
-    run.add_argument("--amr", type=int, default=defaults.n_amr, help="AMR の台数")
-    run.add_argument(
-        "--manipulators",
-        type=int,
-        default=defaults.n_mobile_manipulators,
-        help="モバイルマニピュレーターの台数",
-    )
-    run.add_argument("--tasks", type=int, default=defaults.n_tasks, help="タスクの数")
-    run.add_argument(
-        "--manipulate-percent",
-        type=int,
-        default=defaults.manipulate_percent,
-        help="操作スキルを要するタスクの割合(整数%%)",
+    # 未指定は None にして、既定値は GeneratorConfig に任せる(--scenario との併用を検出するため)。
+    gen = run.add_argument_group(f"生成器の設定(--seed のときだけ。既定: {_describe(defaults)})")
+    gen.add_argument("--width", type=int)
+    gen.add_argument("--height", type=int)
+    gen.add_argument("--amr", type=int, help="AMR の台数")
+    gen.add_argument("--manipulators", type=int, help="モバイルマニピュレーターの台数")
+    gen.add_argument("--tasks", type=int, help="タスクの数")
+    gen.add_argument(
+        "--manipulate-percent", type=int, help="操作スキルを要するタスクの割合(整数%%)"
     )
     return parser
 
 
+def _describe(c: GeneratorConfig) -> str:
+    return (
+        f"width={c.width} height={c.height} amr={c.n_amr} manipulators={c.n_mobile_manipulators} "
+        f"tasks={c.n_tasks} manipulate-percent={c.manipulate_percent}"
+    )
+
+
+def _scenario(args: argparse.Namespace, parser: argparse.ArgumentParser) -> Scenario:
+    overrides = {
+        field: value
+        for field, value in {
+            "width": args.width,
+            "height": args.height,
+            "n_amr": args.amr,
+            "n_mobile_manipulators": args.manipulators,
+            "n_tasks": args.tasks,
+            "manipulate_percent": args.manipulate_percent,
+        }.items()
+        if value is not None
+    }
+    if args.scenario is not None:
+        if overrides:
+            parser.error("--scenario と生成器の設定(--width など)は併用できない")
+        return SCENARIOS[args.scenario]()
+    return generate(args.seed, GeneratorConfig(**overrides))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
     try:
-        config = GeneratorConfig(
-            width=args.width,
-            height=args.height,
-            n_amr=args.amr,
-            n_mobile_manipulators=args.manipulators,
-            n_tasks=args.tasks,
-            manipulate_percent=args.manipulate_percent,
-        )
-        text = render_log(generate(args.seed, config), SOLVERS[args.solver]())
+        text = render_log(_scenario(args, parser), SOLVERS[args.solver]())
     except ModelError as e:
         print(f"エラー: {e}", file=sys.stderr)
         return 2

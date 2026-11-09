@@ -1,0 +1,9 @@
+{"schema_version":1,"type":"header"}
+{"height":10,"robots":[{"capacity":5,"id":"r0","kind":"amr","skills":["carry"],"speed":1,"start":[0,0]},{"capacity":5,"id":"r1","kind":"amr","skills":["carry"],"speed":1,"start":[8,0]}],"seed":0,"tasks":[{"demand":1,"id":"t0","location":[3,0],"required_skill":"carry","service_time":1},{"demand":1,"id":"t1","location":[0,3],"required_skill":"carry","service_time":1}],"type":"scenario","width":10}
+{"config":{},"name":"greedy","type":"solver"}
+{"routes":{"r0":["t0","t1"],"r1":[]},"type":"plan"}
+{"from":[0,0],"kind":"move","robot":"r0","t0":0,"t1":3,"task":"t0","to":[3,0],"type":"segment"}
+{"from":[3,0],"kind":"service","robot":"r0","t0":3,"t1":4,"task":"t0","to":[3,0],"type":"segment"}
+{"from":[3,0],"kind":"move","robot":"r0","t0":4,"t1":10,"task":"t1","to":[0,3],"type":"segment"}
+{"from":[0,3],"kind":"service","robot":"r0","t0":10,"t1":11,"task":"t1","to":[0,3],"type":"segment"}
+{"available_total":22,"busy_total":11,"makespan":11,"per_robot":{"r0":{"busy":11,"distance":9,"finish":11},"r1":{"busy":0,"distance":0,"finish":0}},"total_distance":9,"type":"metrics"}

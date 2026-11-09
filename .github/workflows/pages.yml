@@ -1,0 +1,65 @@
+name: Pages
+
+# PR ではサイトを組み立てられるかの検証のみ。公開(deploy)は main へのマージ時だけ。
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            viewer/package-lock.json
+            docs/c4/package-lock.json
+
+      - name: Build viewer
+        working-directory: viewer
+        run: |
+          npm ci
+          npm run build
+
+      # Pages ではサーバー側の URL 書き換えができないため、hash history を使う。
+      - name: Build C4 site
+        working-directory: docs/c4
+        run: |
+          npm ci
+          npx likec4 build --base "/${{ github.event.repository.name }}/c4/" --use-hash-history -o dist .
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/c4
+          cp -R viewer/dist/. _site/
+          cp -R docs/c4/dist/. _site/c4/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

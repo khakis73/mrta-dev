@@ -12,13 +12,12 @@ import os
 import pytest
 
 from mrta.logio import check_log_structure, render_log, write_log
-from mrta.scenario import generate
 from mrta.solvers import SOLVERS
 from tests.golden_cases import CASES, GoldenCase
 
 
 def render(case: GoldenCase) -> str:
-    return render_log(generate(case.seed, case.config), SOLVERS[case.solver]())
+    return render_log(case.scenario(), SOLVERS[case.solver]())
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c.name)

@@ -21,3 +21,19 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest
+
+  c4:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs/c4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: docs/c4/package-lock.json
+      - run: npm ci
+      - run: npm run validate
+      - run: npm run build

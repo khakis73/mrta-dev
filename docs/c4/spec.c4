@@ -1,0 +1,30 @@
+// C4の用語に対応するkindの定義。対応表は README.md を参照。
+specification {
+  element person {
+    style {
+      shape person
+      color primary
+    }
+  }
+  element softwareSystem {
+    style {
+      color primary
+    }
+  }
+  element externalSystem {
+    style {
+      color muted
+    }
+  }
+  element container {
+    style {
+      color secondary
+    }
+  }
+  element datastore {
+    style {
+      shape storage
+      color secondary
+    }
+  }
+}

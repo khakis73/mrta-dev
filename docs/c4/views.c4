@@ -1,0 +1,20 @@
+views {
+  // C1: mrta をブラックボックスとして扱う(内部要素は出さない)
+  view context {
+    title 'C1: System Context'
+    include developer, mrta, github
+    include developer -> mrta with {
+      title 'シナリオ実行・結果閲覧'
+    }
+    include github -> mrta with {
+      title 'CIで検証し、Pagesで配信する'
+    }
+  }
+
+  // C2: mrta の内部(コンテナ)と、そこに関わる外部要素
+  view containers of mrta {
+    title 'C2: Container'
+    include *
+    include github
+  }
+}

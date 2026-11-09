@@ -43,8 +43,9 @@
 - [x] ADR-0002: C4のDSL選定(LikeC4を採用)
 - [x] Python骨組み(`uv` + `ruff` + `mypy` + `pytest`)と、空でも緑になるCI
 - [x] C4 Context/Container図(DSL)
-- [ ] TypeScriptの空ビューア + GitHub Pages公開
-- [ ] ブランチ保護の設定(最初のCI成功後、GitHubのSettingsで手動)
+- [x] TypeScriptの空ビューア(`viewer/`、Vite + TypeScript)
+- [ ] GitHub Pages公開(ビューアとC4サイト)
+- [x] ブランチ保護の設定(ruleset `protect-main`、リポジトリをPublic化して有効化)
 
 ## 出力の好み
 

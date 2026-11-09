@@ -44,7 +44,7 @@
 - [x] Python骨組み(`uv` + `ruff` + `mypy` + `pytest`)と、空でも緑になるCI
 - [x] C4 Context/Container図(DSL)
 - [x] TypeScriptの空ビューア(`viewer/`、Vite + TypeScript)
-- [ ] GitHub Pages公開(ビューアとC4サイト)
+- [x] GitHub Pages公開(ビューアとC4サイト)
 - [x] ブランチ保護の設定(ruleset `protect-main`、リポジトリをPublic化して有効化)
 
 ## 出力の好み

@@ -1,0 +1,20 @@
+{
+  "name": "mrta-viewer",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "mrta の静的ビューア(JSONLログのリプレイ・比較表示)",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview"
+  },
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite": "8.3.7"
+  }
+}

@@ -12,7 +12,9 @@
 
 <https://khakis73.github.io/mrta-dev/>
 
-- ビューア: ルート(貪欲法のデモログをリプレイ。ログはビルド時に Python で生成して同梱)
+- ビューア: ルート(貪欲法のデモログをリプレイ。ログはビルド時に `mrta publish` で生成して同梱)
+- 比較: 画面下の「比較の例」から、同じシナリオを貪欲法とハンガリアン法で解いた2画面比較を開ける
+  (`?log=A&log=B`。[ADR-0006](docs/adr/0006-compare-view-and-published-logs.md))
 - C4図(LikeC4): [`/c4/`](https://khakis73.github.io/mrta-dev/c4/)
 
 ## スコープ

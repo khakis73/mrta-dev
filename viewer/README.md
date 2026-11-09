@@ -14,21 +14,26 @@ uv run npm run build    # 型検査とビルド
 
 ## 画面を見る
 
-ログを生成して `public/data/demo.jsonl` に置く(コミットしない)。ビューアの既定の読み込み先。
+公開用のログ(`demo.jsonl`、比較の例、`manifest.json`)を生成して `public/data/` に置く(コミットしない)。
 Pages では、同じコマンドをビルド時に実行して同梱している。
 
 ```sh
-uv run mrta run --seed 1 --solver greedy --out viewer/public/data/demo.jsonl
+uv run mrta publish --out viewer/public/data
 cd viewer && uv run npm run dev
 ```
 
 `?log=` で別のログを指定できる(同じオリジンのみ)。例: `?log=data/other.jsonl`
 
+- `log` を2回指定すると、同じシナリオの2つのログを**同期して比較**する(時刻は共通)。
+  例: `?log=data/greedy-trap-greedy.jsonl&log=data/greedy-trap-hungarian.jsonl`
+  シナリオが一致しないログの組はエラーにする。3つ以上は受け付けない。
+- `data/manifest.json` があれば、「比較の例」のリンクを出す(無くても閲覧はできる)。
+
 ## テスト
 
 | 種類 | 対象 | コマンド |
 |---|---|---|
-| 単体(vitest) | ログの読み込み・検証、リプレイの計算、再生の状態、経路 | `npm test` |
+| 単体(vitest) | ログの読み込み・検証、リプレイの計算、再生の状態、経路、比較(シナリオの一致・指標の優劣)、マニフェスト | `npm test` |
 | e2e(Playwright) | 画面の表示・操作・エラー表示・スマホ幅・盤面のスクリーンショット | `npm run e2e` |
 
 - 読む側の契約テスト: Python が書いた golden file(`../tests/golden`)を、単体テストと e2e の両方で読む。

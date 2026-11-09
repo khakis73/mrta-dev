@@ -7,3 +7,6 @@ __pycache__/
 dist/
 node_modules/
 .hypothesis/
+viewer/public/data/
+viewer/test-results/
+viewer/playwright-report/

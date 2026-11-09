@@ -12,7 +12,7 @@
 
 <https://khakis73.github.io/mrta-dev/>
 
-- ビューア: ルート(現在は空の骨組み)
+- ビューア: ルート(貪欲法のデモログをリプレイ。ログはビルド時に Python で生成して同梱)
 - C4図(LikeC4): [`/c4/`](https://khakis73.github.io/mrta-dev/c4/)
 
 ## スコープ

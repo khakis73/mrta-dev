@@ -59,7 +59,7 @@
 {"routes":{"r0":["t0"]},"type":"plan"}
 {"from":[0,0],"kind":"move","robot":"r0","t0":0,"t1":4,"task":"t0","to":[3,4],"type":"segment"}
 {"from":[3,4],"kind":"service","robot":"r0","t0":4,"t1":6,"task":"t0","to":[3,4],"type":"segment"}
-{"metrics":{"available_total":6,"busy_total":6,"makespan":6,"per_robot":{"r0":{"busy":6,"distance":7,"finish":6}},"total_distance":7},"type":"metrics"}
+{"available_total":6,"busy_total":6,"makespan":6,"per_robot":{"r0":{"busy":6,"distance":7,"finish":6}},"total_distance":7,"type":"metrics"}
 ```
 
 (上は説明用に短くした例。キーは実際の出力と同じくソート済み。)

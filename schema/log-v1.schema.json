@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "mrta log line (schema_version 1)",
+  "description": "ログの1行(JSONオブジェクト)の検証用。ADR-0004。行の個数・順序などファイル全体の規則は、mrta.logio.check_log_structure が検査する。未知のフィールドと未知の type は許す(後方互換な追加)。",
+  "type": "object",
+  "required": ["type"],
+  "properties": { "type": { "type": "string" } },
+  "allOf": [
+    { "if": { "required": ["type"], "properties": { "type": { "const": "header" } } }, "then": { "$ref": "#/$defs/header" } },
+    { "if": { "required": ["type"], "properties": { "type": { "const": "scenario" } } }, "then": { "$ref": "#/$defs/scenario" } },
+    { "if": { "required": ["type"], "properties": { "type": { "const": "solver" } } }, "then": { "$ref": "#/$defs/solver" } },
+    { "if": { "required": ["type"], "properties": { "type": { "const": "plan" } } }, "then": { "$ref": "#/$defs/plan" } },
+    { "if": { "required": ["type"], "properties": { "type": { "const": "segment" } } }, "then": { "$ref": "#/$defs/segment" } },
+    { "if": { "required": ["type"], "properties": { "type": { "const": "metrics" } } }, "then": { "$ref": "#/$defs/metrics" } }
+  ],
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "coord": { "type": "integer", "minimum": 0 },
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "$ref": "#/$defs/coord" }, { "$ref": "#/$defs/coord" }],
+      "items": false,
+      "minItems": 2
+    },
+    "tick": { "type": "integer", "minimum": 0 },
+    "header": {
+      "required": ["schema_version"],
+      "properties": { "schema_version": { "const": 1 } }
+    },
+    "robot": {
+      "type": "object",
+      "required": ["id", "kind", "start", "speed", "capacity", "skills"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "type": "string", "minLength": 1 },
+        "start": { "$ref": "#/$defs/point" },
+        "speed": { "type": "integer", "minimum": 1 },
+        "capacity": { "type": "integer", "minimum": 1 },
+        "skills": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "uniqueItems": true }
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": ["id", "location", "required_skill", "demand", "service_time"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "location": { "$ref": "#/$defs/point" },
+        "required_skill": { "$ref": "#/$defs/id" },
+        "demand": { "type": "integer", "minimum": 1 },
+        "service_time": { "$ref": "#/$defs/tick" }
+      }
+    },
+    "scenario": {
+      "required": ["seed", "width", "height", "robots", "tasks"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "robots": { "type": "array", "items": { "$ref": "#/$defs/robot" }, "minItems": 1 },
+        "tasks": { "type": "array", "items": { "$ref": "#/$defs/task" } }
+      }
+    },
+    "solver": {
+      "required": ["name", "config"],
+      "properties": {
+        "name": { "$ref": "#/$defs/id" },
+        "config": {
+          "type": "object",
+          "additionalProperties": { "type": ["integer", "string", "boolean"] }
+        }
+      }
+    },
+    "plan": {
+      "required": ["routes"],
+      "properties": {
+        "routes": {
+          "type": "object",
+          "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+        }
+      }
+    },
+    "segment": {
+      "required": ["robot", "kind", "task", "from", "to", "t0", "t1"],
+      "properties": {
+        "robot": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["move", "service"] },
+        "task": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/point" },
+        "to": { "$ref": "#/$defs/point" },
+        "t0": { "$ref": "#/$defs/tick" },
+        "t1": { "$ref": "#/$defs/tick" }
+      }
+    },
+    "metrics": {
+      "required": ["makespan", "total_distance", "busy_total", "available_total", "per_robot"],
+      "properties": {
+        "makespan": { "$ref": "#/$defs/tick" },
+        "total_distance": { "$ref": "#/$defs/tick" },
+        "busy_total": { "$ref": "#/$defs/tick" },
+        "available_total": { "$ref": "#/$defs/tick" },
+        "per_robot": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["finish", "distance", "busy"],
+            "properties": {
+              "finish": { "$ref": "#/$defs/tick" },
+              "distance": { "$ref": "#/$defs/tick" },
+              "busy": { "$ref": "#/$defs/tick" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -59,7 +59,7 @@
 {"routes":{"r0":["t0"]},"type":"plan"}
 {"from":[0,0],"kind":"move","robot":"r0","t0":0,"t1":4,"task":"t0","to":[3,4],"type":"segment"}
 {"from":[3,4],"kind":"service","robot":"r0","t0":4,"t1":6,"task":"t0","to":[3,4],"type":"segment"}
-{"metrics":{"available_total":6,"busy_total":6,"makespan":6,"per_robot":{"r0":{"busy":6,"distance":7,"finish":6}},"total_distance":7},"type":"metrics"}
+{"available_total":6,"busy_total":6,"makespan":6,"per_robot":{"r0":{"busy":6,"distance":7,"finish":6}},"total_distance":7,"type":"metrics"}
 ```
 
 (上は説明用に短くした例。キーは実際の出力と同じくソート済み。)
@@ -159,3 +159,8 @@
 - Phase 4 の動的イベントで、行の順序や種類の規則が成り立たなくなる。
 - 決定的な停止条件で止めたソルバでも、golden file のバイト一致が保てない(環境・ライブラリ版の差)。
 - 手書きの3か所の同期が負担になり、乖離が頻発する(スキーマからの型生成を導入する)。
+
+## 訂正履歴
+
+- 2026-11-09: 例の `metrics` 行が `{"metrics":{...},"type":"metrics"}` と1段ネストしていた書き間違いを、
+  本文の定義(フィールドを直接持つ)に合わせて訂正した。決定の内容は変えていない(PR #14)。

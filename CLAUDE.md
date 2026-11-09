@@ -28,7 +28,7 @@
 - 構成: Pythonコア → JSONL → TypeScript静的ビューア → GitHub Pages。
 - **ツールは仮想環境に閉じる:** Python は `uv`、Node は `.venv` に導入する
   (`.node-version` で固定、`scripts/setup-node.sh`)。コマンドは `uv run …` 経由で実行し、
-  グローバルにインストールしない。
+  グローバルにインストールしない(Playwright のブラウザも `PLAYWRIGHT_BROWSERS_PATH=0` で `node_modules` 内)。
 - C4はDSLで書き、設計判断は ADR(`docs/adr/NNNN-タイトル.md`)に残す。
   計画や範囲を変えるときは、README と ADR を更新する。
 - テスト: 全ソルバ共通の契約テスト、property-based test
@@ -48,7 +48,7 @@ Phase 0(雛形・CI・Pages公開)は完了(`v0.0.1`)。
 - [x] ソルバの共通インターフェースと契約テスト、貪欲法
 - [x] シミュレータと指標(完了時間・総移動距離・稼働率)
 - [x] JSONL出力
-- [ ] ビューア: 1画面のリプレイ表示(スクリーンショットテスト)
+- [x] ビューア: 1画面のリプレイ表示(スクリーンショットテスト)
 
 ## 出力の好み
 

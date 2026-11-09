@@ -2,7 +2,7 @@
 
 import { createBoard, robotColor } from "./board";
 import type { Log } from "./log";
-import { Player } from "./player";
+import { Player, frameSeconds } from "./player";
 import { Replay, utilizationText } from "./replay";
 import type { Activity } from "./replay";
 
@@ -156,7 +156,7 @@ export function mountApp(root: HTMLElement, log: Log): void {
   let last: number | null = null;
   function frame(timestamp: number): void {
     if (last !== null) {
-      player.advance((timestamp - last) / 1000);
+      player.advance(frameSeconds(last, timestamp));
     }
     last = timestamp;
     render();

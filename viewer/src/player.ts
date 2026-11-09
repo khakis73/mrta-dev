@@ -3,6 +3,17 @@
 /** 速度 1x のとき、1秒あたりに進むティック数。 */
 export const TICKS_PER_SECOND = 2;
 
+/**
+ * 1フレームで進める実時間の上限(秒)。タブが裏に回ると requestAnimationFrame が止まり、
+ * 戻ったときの経過時間がまとめて加算されて終端まで飛ぶのを防ぐ。
+ */
+export const MAX_FRAME_SECONDS = 0.1;
+
+/** 2つのフレームの時刻(ミリ秒)から、進める実時間(秒)を返す。0 以上 MAX_FRAME_SECONDS 以下。 */
+export function frameSeconds(prevMs: number, nowMs: number): number {
+  return Math.min(Math.max((nowMs - prevMs) / 1000, 0), MAX_FRAME_SECONDS);
+}
+
 export class Player {
   /** 現在の時刻(ティック。小数を含む)。0 以上 end 以下。 */
   t = 0;

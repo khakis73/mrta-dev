@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Player, TICKS_PER_SECOND } from "./player";
+import { MAX_FRAME_SECONDS, Player, TICKS_PER_SECOND, frameSeconds } from "./player";
 
 describe("Player", () => {
   it("再生中だけ、実時間 × 基本速度 × 倍率で進む", () => {
@@ -51,5 +51,19 @@ describe("Player", () => {
 
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])("不正な速度 %s を拒否する", (speed) => {
     expect(() => new Player(10).setSpeed(speed)).toThrow(RangeError);
+  });
+});
+
+describe("frameSeconds", () => {
+  it("通常のフレーム間隔は、そのまま秒にする", () => {
+    expect(frameSeconds(1000, 1016)).toBeCloseTo(0.016);
+  });
+
+  it("タブが裏に回った後の長い間隔は、上限で切る(終端まで飛ばない)", () => {
+    expect(frameSeconds(0, 60_000)).toBe(MAX_FRAME_SECONDS);
+  });
+
+  it("時刻が戻っても負にしない", () => {
+    expect(frameSeconds(1000, 900)).toBe(0);
   });
 });

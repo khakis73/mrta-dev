@@ -4,9 +4,15 @@
 手計算した。コードの出力をそのまま写したものではない。
 """
 
-from mrta.model import CARRY, MANIPULATE, Robot, RobotKind, Task
+from dataclasses import replace
+
+from hypothesis import given
+
+from mrta.model import CARRY, MANIPULATE, Plan, Robot, RobotKind, Scenario, Task
+from mrta.sim import simulate
 from mrta.solvers import GreedySolver
 from tests.builders import robot, scenario, task
+from tests.strategies import scenarios
 
 
 def routes(robots: tuple[Robot, ...], tasks: tuple[Task, ...]) -> dict[str, list[str]]:
@@ -71,3 +77,29 @@ def test_skill_and_capacity_restrict_the_choice() -> None:
         ),
     )
     assert result == {"r0": ["t1"], "r1": ["t0"]}
+
+
+@given(s=scenarios())
+def test_every_choice_minimizes_the_simulated_finish_time(s: Scenario) -> None:
+    """貪欲法の内部の見積もりと、シミュレータの結果が一致していることの検証。
+
+    貪欲法の選択を1つずつ再現し、各タスクについて「適格な各ロボットの経路の末尾に足したときの
+    完了時刻」を**シミュレータで**測る。貪欲法が選んだロボットが、その最小(同点はID順)であること。
+    完了時刻の計算を二重実装している(ADR-0003)ため、両者のずれをここで検出する。
+    """
+    plan = GreedySolver().solve(s)
+    owner = {tid: rid for rid, tids in plan.routes.items() for tid in tids}
+
+    routes: dict[str, tuple[str, ...]] = {r.id: () for r in s.robots}
+    done: tuple[Task, ...] = ()
+    for t in s.tasks:
+        sub = replace(s, tasks=(*done, t))
+
+        def finish_if_appended(r: Robot, t: Task = t, sub: Scenario = sub) -> int:
+            candidate = {**routes, r.id: (*routes[r.id], t.id)}
+            return simulate(sub, Plan(candidate)).metrics.per_robot[r.id].finish
+
+        _, expected_id = min((finish_if_appended(r), r.id) for r in s.eligible_robots(t))
+        assert owner[t.id] == expected_id
+        routes[owner[t.id]] = (*routes[owner[t.id]], t.id)
+        done = (*done, t)

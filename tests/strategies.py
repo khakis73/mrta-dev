@@ -2,7 +2,7 @@
 
 from hypothesis import strategies as st
 
-from mrta.model import Scenario
+from mrta.model import Plan, Scenario
 from mrta.scenario import GeneratorConfig, generate
 
 seeds = st.integers(-(2**31), 2**31)
@@ -30,3 +30,18 @@ def configs(draw: st.DrawFn) -> GeneratorConfig:
 @st.composite
 def scenarios(draw: st.DrawFn) -> Scenario:
     return generate(draw(seeds), draw(configs()))
+
+
+@st.composite
+def scenarios_with_plans(draw: st.DrawFn) -> tuple[Scenario, Plan]:
+    """ソルバに依存しない、ランダムな有効な Plan。
+
+    各タスクを適格なロボットのうち任意の1台に割り当て、実行順も任意に並べる。
+    シミュレータを、特定のソルバの癖から切り離して検証するために使う。
+    """
+    s = draw(scenarios())
+    routes: dict[str, list[str]] = {r.id: [] for r in s.robots}
+    for task in draw(st.permutations(s.tasks)):
+        robot = draw(st.sampled_from(s.eligible_robots(task)))
+        routes[robot.id].append(task.id)
+    return s, Plan({robot_id: tuple(ids) for robot_id, ids in routes.items()})

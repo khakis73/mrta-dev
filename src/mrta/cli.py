@@ -11,6 +11,7 @@ from pathlib import Path
 from mrta.catalog import SCENARIOS
 from mrta.logio import render_log, write_log
 from mrta.model import ModelError, Scenario
+from mrta.publish import publish
 from mrta.scenario import GeneratorConfig, generate
 from mrta.solvers import SOLVERS
 
@@ -36,6 +37,11 @@ def _parser() -> argparse.ArgumentParser:
     gen.add_argument(
         "--manipulate-percent", type=int, help="操作スキルを要するタスクの割合(整数%%)"
     )
+
+    pub = commands.add_parser(
+        "publish", help="公開するログとマニフェストを書き出す(Pages のビルド用)"
+    )
+    pub.add_argument("--out", type=Path, required=True, help="出力ディレクトリ")
     return parser
 
 
@@ -69,6 +75,9 @@ def _scenario(args: argparse.Namespace, parser: argparse.ArgumentParser) -> Scen
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    if args.command == "publish":
+        publish(args.out)
+        return 0
     try:
         text = render_log(_scenario(args, parser), SOLVERS[args.solver]())
     except ModelError as e:

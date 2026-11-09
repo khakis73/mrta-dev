@@ -46,14 +46,15 @@ jobs:
           cp -R viewer/dist/. _site/
           cp -R docs/c4/dist/. _site/c4/
 
-      # ログはコミットせず、ビルド時に Python で生成する(ADR-0004)。ビューアの既定は data/demo.jsonl。
+      # ログはコミットせず、ビルド時に Python で生成する(ADR-0004)。公開するログの一覧は
+      # `mrta publish` が決め、manifest.json を添える(ADR-0006)。ビューアの既定は data/demo.jsonl。
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Generate demo log
+      - name: Generate logs
         run: |
           uv sync --locked
-          uv run mrta run --seed 1 --solver greedy --out _site/data/demo.jsonl
+          uv run mrta publish --out _site/data
 
       - uses: actions/upload-pages-artifact@v3
         with:

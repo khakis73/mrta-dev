@@ -37,7 +37,7 @@
 進捗に応じてチェックを更新する。完了したらタグ `v0.0.1`。
 
 - [x] ADR-0001: ブランチ戦略とバージョニング
-- [ ] ADR-0002: C4のDSL選定(Structurizr / LikeC4 / Mermaid C4 を比較して決める)
+- [x] ADR-0002: C4のDSL選定(LikeC4を採用)
 - [ ] Python骨組み(`uv` + `ruff` + `mypy` + `pytest`)と、空でも緑になるCI
 - [ ] C4 Context/Container図(DSL)
 - [ ] TypeScriptの空ビューア + GitHub Pages公開

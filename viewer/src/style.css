@@ -86,3 +86,25 @@ dd { margin: 0; font-variant-numeric: tabular-nums; }
   /* 狭い画面では表を横スクロールさせず、種別の列を隠す */
   th:nth-child(2), td:nth-child(2) { display: none; }
 }
+
+/* --- 2画面比較(ADR-0006) --- */
+.app-compare { max-width: 72rem; padding-bottom: 5rem; /* 下に固定した操作部に隠れないよう余白を取る */ }
+.panels { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.panel h2 { margin-top: 0.5rem; }
+.app-compare .controls {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 0.5rem 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+#comparison th, #comparison td { white-space: nowrap; }
+#comparison [data-better="true"] { font-weight: 700; color: #047857; }
+.note { margin: 0.5rem 0 0; color: var(--muted); font-size: 0.8125rem; }
+#examples ul { margin: 0; padding-left: 1.25rem; }
+#examples a { color: var(--accent); }
+
+@media (min-width: 48rem) {
+  .panels { grid-template-columns: 1fr 1fr; }
+}

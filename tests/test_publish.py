@@ -31,7 +31,8 @@ def test_logs_of_an_example_share_the_same_scenario(tmp_path: Path) -> None:
     out = published(tmp_path)
     manifest = json.loads((out / MANIFEST_NAME).read_text(encoding="utf-8"))
     for example in manifest["examples"]:
-        assert len(example["logs"]) >= 2
+        # ビューアの比較は2つまで(ADR-0006)。ソルバが増えたら、ペアの出し方を見直す。
+        assert len(example["logs"]) == 2
         lines = {scenario_line(out / name) for name in example["logs"]}
         assert len(lines) == 1, example["id"]
 

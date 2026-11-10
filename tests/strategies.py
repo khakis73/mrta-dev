@@ -9,15 +9,17 @@ seeds = st.integers(-(2**31), 2**31)
 
 
 @st.composite
-def configs(draw: st.DrawFn) -> GeneratorConfig:
-    n_amr = draw(st.integers(0, 4))
-    n_mm = draw(st.integers(0 if n_amr > 0 else 1, 4))
+def configs(
+    draw: st.DrawFn, *, max_robots_per_kind: int = 4, max_tasks: int = 30
+) -> GeneratorConfig:
+    n_amr = draw(st.integers(0, max_robots_per_kind))
+    n_mm = draw(st.integers(0 if n_amr > 0 else 1, max_robots_per_kind))
     return GeneratorConfig(
         width=draw(st.integers(1, 30)),
         height=draw(st.integers(1, 30)),
         n_amr=n_amr,
         n_mobile_manipulators=n_mm,
-        n_tasks=draw(st.integers(0, 30)),
+        n_tasks=draw(st.integers(0, max_tasks)),
         manipulate_percent=draw(st.integers(0, 100)) if n_mm > 0 else 0,
         amr_speed=draw(st.integers(1, 5)),
         amr_capacity=draw(st.integers(1, 12)),
@@ -30,6 +32,26 @@ def configs(draw: st.DrawFn) -> GeneratorConfig:
 @st.composite
 def scenarios(draw: st.DrawFn) -> Scenario:
     return generate(draw(seeds), draw(configs()))
+
+
+@st.composite
+def small_scenarios(
+    draw: st.DrawFn, *, max_robots_per_kind: int = 2, max_tasks: int = 6
+) -> Scenario:
+    """厳密解のソルバ(CP-SAT)や全探索を回せる規模のシナリオ。"""
+    config = draw(configs(max_robots_per_kind=max_robots_per_kind, max_tasks=max_tasks))
+    return generate(draw(seeds), config)
+
+
+# 契約テストで、ソルバごとに使うシナリオの戦略。指定がなければ `scenarios()`。
+# 厳密解のソルバは規模が大きいと遅い(ADR-0007)ので、小さな規模に絞る。
+CONTRACT_SCENARIOS: dict[str, st.SearchStrategy[Scenario]] = {
+    "cpsat": small_scenarios(max_robots_per_kind=2, max_tasks=6),
+}
+
+
+def contract_scenarios(solver_name: str) -> st.SearchStrategy[Scenario]:
+    return CONTRACT_SCENARIOS.get(solver_name, scenarios())
 
 
 @st.composite

@@ -3,7 +3,8 @@ from pathlib import Path
 
 from mrta.cli import main
 from mrta.logio import check_log_structure
-from mrta.publish import DEMO_NAME, MANIFEST_NAME, MANIFEST_VERSION
+from mrta.publish import DEMO_NAME, MANIFEST_NAME, MANIFEST_VERSION, PUBLISHED_SOLVERS
+from mrta.solvers import SOLVERS
 from tests.golden_cases import GOLDEN_DIR
 
 
@@ -55,3 +56,9 @@ def test_publish_is_deterministic(tmp_path: Path) -> None:
     names = sorted(p.name for p in first.iterdir())
     assert names == sorted(p.name for p in second.iterdir())
     assert all((first / n).read_bytes() == (second / n).read_bytes() for n in names)
+
+
+def test_published_solvers_are_registered_and_a_pair() -> None:
+    """公開するのは登録済みの2つのソルバ(ADR-0006: 比較は2画面)。登録だけでは公開物は増えない。"""
+    assert len(PUBLISHED_SOLVERS) == 2
+    assert set(PUBLISHED_SOLVERS) <= set(SOLVERS)

@@ -5,9 +5,11 @@ uv run mrta run --seed 0 --solver greedy --out runs/seed0-greedy.jsonl
 
 import argparse
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 
+from mrta.bench import PRESETS, render_json, render_markdown, run
 from mrta.catalog import SCENARIOS
 from mrta.logio import render_log, write_log
 from mrta.model import ModelError, Scenario
@@ -42,6 +44,14 @@ def _parser() -> argparse.ArgumentParser:
         "publish", help="公開するログとマニフェストを書き出す(Pages のビルド用)"
     )
     pub.add_argument("--out", type=Path, required=True, help="出力ディレクトリ")
+
+    bench = commands.add_parser(
+        "bench", help="複数シードのベンチマーク(統計と下界ギャップ)を実行する"
+    )
+    bench.add_argument("--preset", choices=sorted(PRESETS), required=True)
+    bench.add_argument("--seeds", type=int, help="シード数(先頭から。省略時はプリセットの既定)")
+    bench.add_argument("--jobs", type=int, default=1, help="並列数(結果は並列数に依存しない)")
+    bench.add_argument("--out", type=Path, help="出力ディレクトリ(bench.json と bench.md)")
     return parser
 
 
@@ -78,6 +88,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "publish":
         publish(args.out)
         return 0
+    if args.command == "bench":
+        return _bench(args)
     try:
         text = render_log(_scenario(args, parser), SOLVERS[args.solver]())
     except ModelError as e:
@@ -89,4 +101,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         write_log(args.out, text)
+    return 0
+
+
+def _bench(args: argparse.Namespace) -> int:
+    preset = PRESETS[args.preset]
+    total = preset.seeds if args.seeds is None else args.seeds
+    started = time.monotonic()
+
+    def progress(done: int) -> None:  # 所要時間は標準エラーにだけ出す(結果は決定的に保つ)
+        print(f"\r{done}/{total} ({time.monotonic() - started:.1f}s)", end="", file=sys.stderr)
+
+    try:
+        result = run(preset, seeds=args.seeds, jobs=args.jobs, on_done=progress)
+    except ModelError as e:
+        print(f"\nエラー: {e}", file=sys.stderr)
+        return 2
+    print(file=sys.stderr)
+
+    markdown = render_markdown(result)
+    if args.out is not None:
+        args.out.mkdir(parents=True, exist_ok=True)
+        write_log(args.out / "bench.json", render_json(result))
+        write_log(args.out / "bench.md", markdown)
+    sys.stdout.write(markdown)
     return 0

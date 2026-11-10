@@ -47,7 +47,7 @@ Phase 0(`v0.0.1`)、Phase 1(`v0.1.0`)、Phase 2(`v0.2.0`)は完了。
 - [x] ADR-0008: 下界とベンチマーク(下界ギャップ、複数シードの統計)
 - [x] 下界の計算とベンチマーク(`mrta bench`)
 - [x] ADR-0009: Routing ソルバ(OR-Tools Routing。試作の不具合の原因はコールバックの例外。採用)
-- [ ] Routing ソルバ(ADR-0009 で採用する場合)
+- [x] Routing ソルバ(`routing`。GLS + 解数・分岐数の上限)
 
 ## 出力の好み
 

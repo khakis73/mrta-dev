@@ -1,6 +1,6 @@
 # ADR-0008: 下界とベンチマーク
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-10
 
 ## Context

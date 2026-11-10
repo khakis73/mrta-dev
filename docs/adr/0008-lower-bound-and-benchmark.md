@@ -98,7 +98,7 @@ numpy・pandas は使わない。**有意性検定や信頼区間は出さない
 - `bench.json`: 測定の生データ。整数のみ、キーをソート、空白なし(ADR-0004 と同じ規則)。
   `bench_version`(整数)、プリセットの設定、各ソルバの config、行の一覧、
   `environment`(`ortools` と Python の版)を持つ。**`environment` 以外は、同じ入力から同じバイト列になる。**
-- `bench.md`: 上の集計。`bench.json` から決定的に作る。
+- `bench.md`: 上の集計。`bench.json` と同じ測定結果から決定的に作る(`bench.json` を読み戻しはしない)。
 
 `--jobs N` でシードを並列に解く(プロセス分割。各 CP-SAT は `num_workers=1` のまま)。
 結果はシード順に並べるので、出力は `--jobs` に依存しない。既定は 1。

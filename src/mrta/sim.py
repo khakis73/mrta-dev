@@ -8,6 +8,8 @@
 - 各タスクの移動の開始は `max(直前の完了時刻, release_time)`(ADR-0011)。待つのは出発前だけで、
   到着前に先回りして移動することはない。待機はセグメントにしない(時間の隙間になる)。
   全タスクの `release_time` が 0 なら待機は生じず、従来(ADR-0003)と同じ結果になる。
+- 最初のタスクの前の「直前の完了時刻」は、ロボットの `ready_at`(ADR-0012。既定 0)。
+  **タスクが0件のロボットの完了時刻は 0**(`ready_at` 自体は完了時刻にならない)。
 - ロボット同士は干渉しない。完了時刻は自分の経路と、そのタスクの到着時刻だけで決まる。
 - 移動時間は `ceil(距離 / 速度)` ティック。
 """
@@ -83,7 +85,7 @@ def simulate(scenario: Scenario, plan: Plan) -> SimulationResult:
     for robot_id, task_ids in plan.routes.items():
         robot = robots[robot_id]
         position = robot.start
-        now = 0
+        now = robot.ready_at if task_ids else 0  # タスクが無ければ動かない(完了 0)
         distance = 0
         busy = 0
         for task_id in task_ids:

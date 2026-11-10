@@ -97,6 +97,15 @@ def test_release_time_is_optional_for_tasks() -> None:
     validator.validate(line)
 
 
+def test_ready_at_is_optional_for_robots() -> None:
+    """ADR-0012: 任意のフィールド。無い(= 0)ログも、書かれたログも有効。"""
+    line = valid("scenario")
+    assert "ready_at" not in line["robots"][0]
+    validator.validate(line)
+    line["robots"][0]["ready_at"] = 7
+    validator.validate(line)
+
+
 def test_unknown_line_types_are_allowed() -> None:
     validator.validate({"type": "annotation", "text": "future"})
 
@@ -141,6 +150,8 @@ def mutated(type_: str, edit: Any) -> dict[str, Any]:
         ("scenario", lambda ln: ln["tasks"][0].update(release_time=-1)),  # 負の到着
         ("scenario", lambda ln: ln["tasks"][0].update(release_time=1.5)),  # 浮動小数点
         ("scenario", lambda ln: ln["tasks"][0].update(release_time="3")),
+        ("scenario", lambda ln: ln["robots"][0].update(ready_at=-1)),  # 負の空く時刻
+        ("scenario", lambda ln: ln["robots"][0].update(ready_at=2.5)),  # 浮動小数点
         ("solver", lambda ln: ln["config"].update(limit=1.5)),  # config に浮動小数点
         ("solver", lambda ln: ln["config"].update(limit=None)),
         ("solver", lambda ln: ln["config"].update(limit=[1])),

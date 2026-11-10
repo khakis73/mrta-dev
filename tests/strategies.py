@@ -1,5 +1,7 @@
 """hypothesis の戦略。生成器の設定とシナリオを、広い範囲で作る。"""
 
+from dataclasses import replace
+
 from hypothesis import strategies as st
 
 from mrta.model import Plan, Scenario
@@ -35,8 +37,17 @@ def configs(
 
 
 @st.composite
-def scenarios(draw: st.DrawFn) -> Scenario:
-    return generate(draw(seeds), draw(configs()))
+def with_ready_at(draw: st.DrawFn, s: Scenario, max_ready_at: int) -> Scenario:
+    """各ロボットに `ready_at`(0 以上)を付ける(ADR-0012)。生成器は常に 0 なので、テストで足す。"""
+    robots = tuple(replace(r, ready_at=draw(st.integers(0, max_ready_at))) for r in s.robots)
+    return replace(s, robots=robots)
+
+
+@st.composite
+def scenarios(draw: st.DrawFn, *, max_ready_at: int = 0) -> Scenario:
+    """既定は `ready_at` が 0(通常のシナリオ)。契約テストなどは `max_ready_at` を指定する。"""
+    s = generate(draw(seeds), draw(configs()))
+    return draw(with_ready_at(s, max_ready_at)) if max_ready_at > 0 else s
 
 
 @st.composite
@@ -46,6 +57,7 @@ def small_scenarios(
     max_robots_per_kind: int = 2,
     max_tasks: int = 6,
     max_arrival_window: int = 0,
+    max_ready_at: int = 0,
 ) -> Scenario:
     """厳密解のソルバ(CP-SAT)や全探索を回せる規模のシナリオ。
 
@@ -59,20 +71,25 @@ def small_scenarios(
             max_arrival_window=max_arrival_window,
         )
     )
-    return generate(draw(seeds), config)
+    s = generate(draw(seeds), config)
+    return draw(with_ready_at(s, max_ready_at)) if max_ready_at > 0 else s
 
 
 # 契約テストで、ソルバごとに使うシナリオの戦略。指定がなければ `scenarios()`。
 # 厳密解・メタヒューリスティックのソルバは規模が大きいと遅い(ADR-0007、0009)ので、小さな規模に絞る。
 CONTRACT_SCENARIOS: dict[str, st.SearchStrategy[Scenario]] = {
-    "cpsat": small_scenarios(max_robots_per_kind=2, max_tasks=6, max_arrival_window=30),
+    "cpsat": small_scenarios(
+        max_robots_per_kind=2, max_tasks=6, max_arrival_window=30, max_ready_at=30
+    ),
     # Routing(GLS)は1例あたり数百 ms かかりうる。大きな戦略(30タスク)では契約テストが2分を超えた。
-    "routing": small_scenarios(max_robots_per_kind=2, max_tasks=6, max_arrival_window=30),
+    "routing": small_scenarios(
+        max_robots_per_kind=2, max_tasks=6, max_arrival_window=30, max_ready_at=30
+    ),
 }
 
 
 def contract_scenarios(solver_name: str) -> st.SearchStrategy[Scenario]:
-    return CONTRACT_SCENARIOS.get(solver_name, scenarios())
+    return CONTRACT_SCENARIOS.get(solver_name, scenarios(max_ready_at=30))
 
 
 @st.composite

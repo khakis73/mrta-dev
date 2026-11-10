@@ -49,6 +49,7 @@ def rebuild_scenario(line: dict[str, Any]) -> Scenario:
                 speed=r["speed"],
                 capacity=r["capacity"],
                 skills=frozenset(r["skills"]),
+                ready_at=r.get("ready_at", 0),  # 無ければ 0(ADR-0012)
             )
             for r in line["robots"]
         ),

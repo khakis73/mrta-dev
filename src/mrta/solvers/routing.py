@@ -3,6 +3,9 @@
 - 車両 = ロボット。ノードは、タスク、各ロボットの開始位置、全車両で共通のダミー終端。
   終端への遷移の費用は 0(帰還しない、ADR-0003)。
 - 遷移時間は車両ごとの**行列**で渡す。Python のコールバックは使わない。
+  `ready_at`(ADR-0012)は、**時間次元の遷移にだけ**、開始ノードから出る弧に足す
+  (弧の費用は移動 + 作業のまま)。
+  空の経路の終端の累積時間は 0 のままになる。
   **コールバック内の例外は握りつぶされて費用 0 になる**(OR-Tools は、実際には通らない弧でも
   評価器を呼ぶ)。行列なら、コールバック自体が無いので、この不具合が起きない(ADR-0009)。
 - 目的は `Σ(弧の費用) + K × 終端の累積時間の最大値`。開始時刻が全て 0 なので、後者は makespan。
@@ -85,27 +88,34 @@ def solve_routing(scenario: Scenario, config: RoutingConfig | None = None) -> Ro
     def location(node: int) -> tuple[int, int]:
         return tasks[node].location if node < n else robots[node - n].start
 
-    # 遷移時間: 車両ごとの行列。終端・開始ノードが絡む遷移は 0(実際には通らない、または費用なし)。
-    matrices = [
-        [
+    def build(robot_index: int, *, with_ready: bool) -> list[list[int]]:
+        """車両 `robot_index` の遷移時間の行列。終端・開始ノードが絡む遷移は 0。
+        `with_ready` なら、その車両の開始ノードから出る弧に `ready_at` を足す(時間次元用)。"""
+        robot = robots[robot_index]
+        return [
             [
-                travel_ticks(manhattan(location(a), location(b)), robot.speed)
-                + tasks[b].service_time
+                (
+                    travel_ticks(manhattan(location(a), location(b)), robot.speed)
+                    + tasks[b].service_time
+                    + (robot.ready_at if with_ready and a == n + robot_index else 0)
+                )
                 if a < end and b < n
                 else 0
                 for b in range(nodes)
             ]
             for a in range(nodes)
         ]
-        for robot in robots
-    ]
+
+    matrices = [build(v, with_ready=False) for v in range(r_count)]  # 弧の費用(移動 + 作業)
+    time_matrices = [build(v, with_ready=True) for v in range(r_count)]  # 時間次元(+ ready_at)
 
     manager = pywrapcp.RoutingIndexManager(nodes, r_count, starts, [end] * r_count)
     routing = pywrapcp.RoutingModel(manager)
     evaluators = [routing.RegisterTransitMatrix(m) for m in matrices]
+    time_evaluators = [routing.RegisterTransitMatrix(m) for m in time_matrices]
     for v, evaluator in enumerate(evaluators):
         routing.SetArcCostEvaluatorOfVehicle(evaluator, v)
-    routing.AddDimensionWithVehicleTransits(evaluators, 0, 10**9, True, DIMENSION)
+    routing.AddDimensionWithVehicleTransits(time_evaluators, 0, 10**9, True, DIMENSION)
     dimension = routing.GetDimensionOrDie(DIMENSION)
     dimension.SetGlobalSpanCostCoefficient(config.span_cost_coefficient)
 

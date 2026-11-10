@@ -4,6 +4,7 @@
 - 各タスクについて、適格なロボットのうち「そのタスクを経路の末尾に足したときの
   完了時刻」が最小のものを選ぶ。同点はロボットIDの辞書順(決定性)。
 - 完了時刻の計算は、ADR-0003 の実行の意味(移動 → 作業、帰還なし)に従う。
+  ロボットの初期の完了時刻は `ready_at`(ADR-0012)。到着時刻 `release_time` は見ない(ADR-0011)。
 """
 
 from collections.abc import Mapping
@@ -27,7 +28,7 @@ class GreedySolver:
     def solve(self, scenario: Scenario) -> Plan:
         require_solvable(scenario)
 
-        states = {r.id: _RobotState(position=r.start, finish=0) for r in scenario.robots}
+        states = {r.id: _RobotState(position=r.start, finish=r.ready_at) for r in scenario.robots}
         routes: dict[str, list[str]] = {r.id: [] for r in scenario.robots}
 
         for task in scenario.tasks:

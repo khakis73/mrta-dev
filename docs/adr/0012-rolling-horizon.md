@@ -74,6 +74,19 @@ makespan の比の平均。
 - 4台・10タスクでの簡易な下界(`LB_task`)は、W=20 で平均 22.4。達成値(36 前後)に遠く、
   この規模ではオフライン最適が分からない。小さな規模なら全探索で足りる。
 
+### 実装後の測定
+
+実装後に `mrta bench` で測り直した(`dynamic-small`: 4台・10タスク・40シード、`dynamic-tiny`: 1 AMR + 2 マニピュレーター・
+5タスク・60シード。結果は README)。試作と同じ傾向で、数値は少し違う(基底へのタスクの渡し順を、試作の
+`Scenario` の並びから、到着順(同時刻は ID 順)に変えたため)。
+
+- `dynamic-small`、窓 20: ローリングの改善は greedy +16.6%、hungarian +13.0%、routing +4.9%、cpsat +4.1%。
+  窓 10 では routing −2.7%、cpsat −3.1%(静的のほうが良い)。窓 40 では +8.2〜16.7%。
+- `dynamic-tiny`(オフライン最適との比 − 1 の平均): ローリングは cpsat 5.8%、routing 6.3%、
+  hungarian 8.3%、greedy 11.0%。静的は cpsat 9.0%、routing 7.6%、hungarian 16.1%、greedy 22.6%。
+  試作(同じ規模・窓 20・60シード)の比 − 1 は、ローリングが cpsat 5.8%、routing 6.3%、hungarian 8.3%、
+  greedy 8.7%で、greedy だけ違う(渡し順の違い)。
+
 ## Decision
 
 ### 1. ロボットの空く時刻 `ready_at`

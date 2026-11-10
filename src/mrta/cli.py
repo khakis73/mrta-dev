@@ -9,7 +9,7 @@ import time
 from collections.abc import Sequence
 from pathlib import Path
 
-from mrta.bench import PRESETS, render_json, render_markdown, run
+from mrta.bench import PRESETS, render_json, render_markdown, run, with_window
 from mrta.catalog import SCENARIOS
 from mrta.logio import render_log, write_log
 from mrta.model import ModelError, Scenario
@@ -55,6 +55,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     bench.add_argument("--preset", choices=sorted(PRESETS), required=True)
     bench.add_argument("--seeds", type=int, help="シード数(先頭から。省略時はプリセットの既定)")
+    bench.add_argument(
+        "--window",
+        type=int,
+        help="到着の窓を上書きする(0 なら静的。結果に窓が併記される。ADR-0012)",
+    )
     bench.add_argument("--jobs", type=int, default=1, help="並列数(結果は並列数に依存しない)")
     bench.add_argument("--out", type=Path, help="出力ディレクトリ(bench.json と bench.md)")
     return parser
@@ -113,6 +118,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _bench(args: argparse.Namespace) -> int:
     preset = PRESETS[args.preset]
+    try:
+        if args.window is not None:
+            preset = with_window(preset, args.window)
+    except ModelError as e:
+        print(f"エラー: {e}", file=sys.stderr)
+        return 2
     total = preset.seeds if args.seeds is None else args.seeds
     started = time.monotonic()
 

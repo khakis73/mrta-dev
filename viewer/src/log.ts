@@ -24,6 +24,8 @@ export interface Task {
   requiredSkill: string;
   demand: number;
   serviceTime: number;
+  /** タスクが現れるティック。ログに無ければ 0(静的。ADR-0011)。 */
+  releaseTime: number;
 }
 
 export type SegmentKind = "move" | "service";
@@ -150,6 +152,8 @@ function parseTask(v: unknown, i: number): Task {
     requiredSkill: str(field(o, "required_skill", where), `${where}.required_skill`),
     demand: int(field(o, "demand", where), `${where}.demand`, 1),
     serviceTime: int(field(o, "service_time", where), `${where}.service_time`, 0),
+    // 任意のフィールド(ADR-0011)。0 のときは書かれないので、無ければ 0。
+    releaseTime: "release_time" in o ? int(o["release_time"], `${where}.release_time`, 0) : 0,
   };
 }
 

@@ -42,13 +42,17 @@ def _robot(r: Robot) -> JsonObject:
 
 
 def _task(t: Task) -> JsonObject:
-    return {
+    obj: JsonObject = {
         "id": t.id,
         "location": list(t.location),
         "required_skill": t.required_skill,
         "demand": t.demand,
         "service_time": t.service_time,
     }
+    # 0 のときは書かない(ADR-0011)。静的なシナリオのログは従来とバイト単位で同じになる。
+    if t.release_time > 0:
+        obj["release_time"] = t.release_time
+    return obj
 
 
 def _segment(g: Segment) -> JsonObject:

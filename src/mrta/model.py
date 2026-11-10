@@ -73,6 +73,7 @@ class Task:
     required_skill: str
     demand: int
     service_time: int  # 作業にかかるティック数(0 を許す)
+    release_time: int = 0  # タスクが現れるティック(ADR-0011)。0 なら時刻0で既知(静的)
 
     def __post_init__(self) -> None:
         _id("Task.id", self.id)
@@ -80,6 +81,7 @@ class Task:
         _id(f"Task[{self.id}].required_skill", self.required_skill)
         require_int(f"Task[{self.id}].demand", self.demand, minimum=1)
         require_int(f"Task[{self.id}].service_time", self.service_time, minimum=0)
+        require_int(f"Task[{self.id}].release_time", self.release_time, minimum=0)
 
 
 def is_eligible(robot: Robot, task: Task) -> bool:

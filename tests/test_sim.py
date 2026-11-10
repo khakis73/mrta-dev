@@ -127,19 +127,32 @@ class TestProperties:
     """任意のシナリオと有効な Plan に対して成り立つ性質。"""
 
     @given(sp=scenarios_with_plans())
-    def test_each_robot_timeline_is_contiguous_from_start_to_finish(
+    def test_each_robot_timeline_is_chained_and_waits_only_before_departing(
         self, sp: tuple[Scenario, Plan]
     ) -> None:
+        """位置は途切れず連なり、時間の隙間(待機)は出発前だけ。重ならない。
+        隙間が空くのは、到着前のタスクの移動を始めずに待っているとき(ADR-0011)。"""
         s, plan = sp
+        release = {t.id: t.release_time for t in s.tasks}
         result = simulate(s, plan)
         for r in s.robots:
             own = sorted((g for g in result.segments if g.robot == r.id), key=lambda g: g.t0)
             position, now = r.start, 0
             for g in own:
-                assert (g.src, g.t0) == (position, now)  # 途切れ・重なりがない
+                assert g.src == position  # 位置は連なる
+                assert g.t0 >= now  # 重ならない
                 assert g.t1 > g.t0  # 長さ0の区間は出さない
+                if g.t0 > now:  # 隙間があるのは、このタスクの最初の区間の前だけ
+                    assert g.t0 == release[g.task]
                 position, now = g.dst, g.t1
             assert now == result.metrics.per_robot[r.id].finish
+
+    @given(sp=scenarios_with_plans())
+    def test_no_task_starts_before_it_is_released(self, sp: tuple[Scenario, Plan]) -> None:
+        s, plan = sp
+        release = {t.id: t.release_time for t in s.tasks}
+        for g in simulate(s, plan).segments:
+            assert g.t0 >= release[g.task]
 
     @given(sp=scenarios_with_plans())
     def test_segment_durations_follow_the_model(self, sp: tuple[Scenario, Plan]) -> None:
@@ -165,9 +178,11 @@ class TestProperties:
         )
         assert m.busy_total == sum(g.t1 - g.t0 for g in result.segments)
         assert m.available_total == len(s.robots) * m.makespan
-        # このモデルには待ちがないので、稼働時間は完了時刻に一致する
-        assert all(x.busy == x.finish for x in m.per_robot.values())
-        assert m.busy_total == sum(finishes)
+        # 稼働時間は移動と作業だけ。待機(出発前)は含まないので、完了時刻以下
+        assert all(x.busy <= x.finish for x in m.per_robot.values())
+        if all(t.release_time == 0 for t in s.tasks):  # 静的なら待機がなく、一致する(ADR-0003)
+            assert all(x.busy == x.finish for x in m.per_robot.values())
+            assert m.busy_total == sum(finishes)
 
     @given(sp=scenarios_with_plans())
     def test_every_task_is_served_exactly_once(self, sp: tuple[Scenario, Plan]) -> None:

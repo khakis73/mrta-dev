@@ -43,6 +43,15 @@ CASES = (
         solver="greedy",
     ),
     GoldenCase(name="default-greedy", seed=1, config=GeneratorConfig(), solver="greedy"),
+    # 動的な到着(ADR-0011): release_time を書く経路と、待機(時間の隙間)を持つログの契約テスト用。
+    GoldenCase(
+        name="dynamic-greedy",
+        seed=0,
+        config=GeneratorConfig(
+            width=10, height=10, n_amr=1, n_mobile_manipulators=1, n_tasks=3, arrival_window=8
+        ),
+        solver="greedy",
+    ),
     # 手作りシナリオ: 同じシナリオを2つのソルバで解いた対(ビューアの2画面比較の契約テスト用)。
     GoldenCase(name="greedy-trap-greedy", catalog="greedy-trap", solver="greedy"),
     GoldenCase(name="greedy-trap-hungarian", catalog="greedy-trap", solver="hungarian"),

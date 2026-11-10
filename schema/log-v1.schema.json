@@ -47,7 +47,8 @@
         "location": { "$ref": "#/$defs/point" },
         "required_skill": { "$ref": "#/$defs/id" },
         "demand": { "type": "integer", "minimum": 1 },
-        "service_time": { "$ref": "#/$defs/tick" }
+        "service_time": { "$ref": "#/$defs/tick" },
+        "release_time": { "$ref": "#/$defs/tick" }
       }
     },
     "scenario": {

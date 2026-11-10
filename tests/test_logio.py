@@ -59,6 +59,7 @@ def rebuild_scenario(line: dict[str, Any]) -> Scenario:
                 required_skill=t["required_skill"],
                 demand=t["demand"],
                 service_time=t["service_time"],
+                release_time=t.get("release_time", 0),  # 無ければ 0(ADR-0011)
             )
             for t in line["tasks"]
         ),

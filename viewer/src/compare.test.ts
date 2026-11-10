@@ -6,6 +6,8 @@ import { golden } from "./test-utils";
 
 const greedy = parseLog(golden("greedy-trap-greedy"));
 const hungarian = parseLog(golden("greedy-trap-hungarian"));
+const dynamicStatic = parseLog(golden("dynamic-greedy"));
+const dynamicRolling = parseLog(golden("dynamic-rolling-greedy"));
 
 function metrics(over: Partial<Metrics>): Metrics {
   return { makespan: 10, totalDistance: 20, busyTotal: 10, availableTotal: 20, perRobot: {}, ...over };
@@ -16,6 +18,35 @@ describe("scenarioMismatch", () => {
     expect(greedy.solver.name).toBe("greedy");
     expect(hungarian.solver.name).toBe("hungarian");
     expect(scenarioMismatch(greedy.scenario, hungarian.scenario)).toBeNull();
+  });
+
+  it("同じ動的シナリオを、静的ソルバとローリングホライズンで解いた2つのログは一致する", () => {
+    expect(dynamicStatic.solver.name).toBe("greedy");
+    expect(dynamicRolling.solver.name).toBe("rolling-greedy");
+    expect(dynamicRolling.solver.config).toEqual({ base: "greedy" });
+    expect(scenarioMismatch(dynamicStatic.scenario, dynamicRolling.scenario)).toBeNull();
+  });
+
+  it("到着時刻だけが違うシナリオは、同じとみなさない(ADR-0011)", () => {
+    const [t0, ...rest] = dynamicRolling.scenario.tasks;
+    const changed = {
+      ...dynamicRolling.scenario,
+      tasks: [{ ...t0!, releaseTime: t0!.releaseTime + 1 }, ...rest],
+    };
+    expect(scenarioMismatch(dynamicStatic.scenario, changed)).toBe(
+      "シナリオが一致しない: タスク t0 の設定が違う",
+    );
+  });
+
+  it("ロボットの出発できる時刻だけが違うシナリオも、同じとみなさない(ADR-0012)", () => {
+    const [r0, ...rest] = dynamicRolling.scenario.robots;
+    const changed = {
+      ...dynamicRolling.scenario,
+      robots: [{ ...r0!, readyAt: r0!.readyAt + 1 }, ...rest],
+    };
+    expect(scenarioMismatch(dynamicStatic.scenario, changed)).toBe(
+      "シナリオが一致しない: ロボット r0 の設定が違う",
+    );
   });
 
   it("別のシナリオは、違いの項目を示して拒否する", () => {

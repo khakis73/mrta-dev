@@ -89,7 +89,13 @@ CONTRACT_SCENARIOS: dict[str, st.SearchStrategy[Scenario]] = {
 
 
 def contract_scenarios(solver_name: str) -> st.SearchStrategy[Scenario]:
-    return CONTRACT_SCENARIOS.get(solver_name, scenarios(max_ready_at=30))
+    """契約テストのシナリオ。ローリング版(`rolling-<基底>`)は、基底と同じ規模にする。
+
+    ローリング版は1例で最大エポック数(= タスク数)回、基底を解く。基底の規模の戦略に
+    揃えないと、登録漏れで大きな戦略にフォールバックし、契約テストが終わらなくなる(ADR-0012)。
+    """
+    base = solver_name.removeprefix("rolling-")
+    return CONTRACT_SCENARIOS.get(base, scenarios(max_ready_at=30))
 
 
 @st.composite

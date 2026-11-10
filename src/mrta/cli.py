@@ -15,7 +15,7 @@ from mrta.logio import render_log, write_log
 from mrta.model import ModelError, Scenario
 from mrta.publish import publish
 from mrta.scenario import GeneratorConfig, generate
-from mrta.solvers import SOLVERS
+from mrta.solvers import ALL_SOLVERS
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -27,7 +27,7 @@ def _parser() -> argparse.ArgumentParser:
     source = run.add_mutually_exclusive_group(required=True)
     source.add_argument("--seed", type=int, help="生成するシナリオのシード")
     source.add_argument("--scenario", choices=sorted(SCENARIOS), help="手作りシナリオの名前")
-    run.add_argument("--solver", choices=sorted(SOLVERS), required=True)
+    run.add_argument("--solver", choices=sorted(ALL_SOLVERS), required=True)
     run.add_argument("--out", type=Path, help="出力ファイル(省略時は標準出力)")
     # 未指定は None にして、既定値は GeneratorConfig に任せる(--scenario との併用を検出するため)。
     gen = run.add_argument_group(f"生成器の設定(--seed のときだけ。既定: {_describe(defaults)})")
@@ -98,7 +98,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "bench":
         return _bench(args)
     try:
-        text = render_log(_scenario(args, parser), SOLVERS[args.solver]())
+        text = render_log(_scenario(args, parser), ALL_SOLVERS[args.solver]())
     except ModelError as e:
         print(f"エラー: {e}", file=sys.stderr)
         return 2

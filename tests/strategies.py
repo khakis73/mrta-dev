@@ -44,9 +44,11 @@ def small_scenarios(
 
 
 # 契約テストで、ソルバごとに使うシナリオの戦略。指定がなければ `scenarios()`。
-# 厳密解のソルバは規模が大きいと遅い(ADR-0007)ので、小さな規模に絞る。
+# 厳密解・メタヒューリスティックのソルバは規模が大きいと遅い(ADR-0007、0009)ので、小さな規模に絞る。
 CONTRACT_SCENARIOS: dict[str, st.SearchStrategy[Scenario]] = {
     "cpsat": small_scenarios(max_robots_per_kind=2, max_tasks=6),
+    # Routing(GLS)は1例あたり数百 ms かかりうる。大きな戦略(30タスク)では契約テストが2分を超えた。
+    "routing": small_scenarios(max_robots_per_kind=2, max_tasks=6),
 }
 
 

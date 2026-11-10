@@ -40,6 +40,15 @@ select = ["E", "F", "I", "B", "UP"]
 strict = true
 files = ["src", "tests"]
 
+# ortools.constraint_solver(Routing)は型情報(py.typed)を持たない。ortools.sat は持つので対象外。
+[[tool.mypy.overrides]]
+module = ["ortools.constraint_solver", "ortools.constraint_solver.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+filterwarnings = [
+    # OR-Tools(SWIG)の import 時の警告。こちらでは直せない。
+    "ignore:builtin type .* has no __module__ attribute:DeprecationWarning",
+]

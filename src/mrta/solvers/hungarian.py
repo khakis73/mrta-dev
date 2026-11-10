@@ -6,6 +6,7 @@
 - ラウンドの内側は最適だが、ラウンド間は貪欲。また目的は完了時刻の総和で、評価指標の
   完了時間(makespan)とは別物。全体の最適は保証しない。
 - ロボットとタスクを ID の辞書順に並べてから解く。`Scenario` の並び順に依存しない。
+- ロボットの初期の完了時刻は `ready_at`(ADR-0012)。到着時刻 `release_time` は見ない(ADR-0011)。
 """
 
 from collections.abc import Mapping
@@ -40,7 +41,7 @@ class HungarianSolver:
 
         robots = sorted(scenario.robots, key=lambda r: r.id)
         remaining = sorted(scenario.tasks, key=lambda t: t.id)
-        states = {r.id: _RobotState(position=r.start, finish=0) for r in robots}
+        states = {r.id: _RobotState(position=r.start, finish=r.ready_at) for r in robots}
         routes: dict[str, list[str]] = {r.id: [] for r in robots}
 
         while remaining:

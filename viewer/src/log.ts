@@ -16,6 +16,8 @@ export interface Robot {
   speed: number;
   capacity: number;
   skills: string[];
+  /** ロボットが出発できるティック。ログに無ければ 0(ADR-0012)。 */
+  readyAt: number;
 }
 
 export interface Task {
@@ -140,6 +142,8 @@ function parseRobot(v: unknown, i: number): Robot {
     skills: array(field(o, "skills", where), `${where}.skills`).map((s, j) =>
       str(s, `${where}.skills[${j}]`),
     ),
+    // 任意のフィールド(ADR-0012)。0 のときは書かれないので、無ければ 0。
+    readyAt: "ready_at" in o ? int(o["ready_at"], `${where}.ready_at`, 0) : 0,
   };
 }
 

@@ -31,7 +31,7 @@ def _line(obj: JsonObject) -> str:
 
 
 def _robot(r: Robot) -> JsonObject:
-    return {
+    obj: JsonObject = {
         "id": r.id,
         "kind": r.kind.value,
         "start": list(r.start),
@@ -39,6 +39,10 @@ def _robot(r: Robot) -> JsonObject:
         "capacity": r.capacity,
         "skills": sorted(r.skills),
     }
+    # 0 のときは書かない(ADR-0012)。通常のシナリオのログは従来とバイト単位で同じになる。
+    if r.ready_at > 0:
+        obj["ready_at"] = r.ready_at
+    return obj
 
 
 def _task(t: Task) -> JsonObject:

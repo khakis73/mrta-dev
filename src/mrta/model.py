@@ -55,12 +55,14 @@ class Robot:
     speed: int  # 1ティックに進める格子数
     capacity: int  # 1タスクあたりの扱える demand の上限
     skills: frozenset[str]
+    ready_at: int = 0  # このティックまで出発できない(ADR-0012)。0 なら最初から動ける
 
     def __post_init__(self) -> None:
         _id("Robot.id", self.id)
         _point(f"Robot[{self.id}].start", self.start)
         require_int(f"Robot[{self.id}].speed", self.speed, minimum=1)
         require_int(f"Robot[{self.id}].capacity", self.capacity, minimum=1)
+        require_int(f"Robot[{self.id}].ready_at", self.ready_at, minimum=0)
         object.__setattr__(self, "skills", frozenset(self.skills))
         if not self.skills or any(not isinstance(s, str) or s == "" for s in self.skills):
             raise ModelError(f"Robot[{self.id}].skills は空でない文字列の集合でなければならない")

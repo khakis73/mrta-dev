@@ -157,3 +157,25 @@ describe("動的な到着(release_time。ADR-0011)", () => {
     }
   });
 });
+
+describe("ロボットの空く時刻(ready_at。ADR-0012)", () => {
+  it("ログに無ければ 0", () => {
+    expect(parseLog(TINY).scenario.robots.map((r) => r.readyAt)).toEqual([0, 0]);
+  });
+
+  it("書かれていれば読む", () => {
+    const text = replaceLine(TINY, 1, (o) => {
+      ((o["robots"] as Record<string, unknown>[])[1] as Record<string, unknown>)["ready_at"] = 7;
+    });
+    expect(parseLog(text).scenario.robots.map((r) => r.readyAt)).toEqual([0, 7]);
+  });
+
+  it("負・小数・文字列なら拒否する", () => {
+    for (const bad of [-1, 1.5, "3"]) {
+      const text = replaceLine(TINY, 1, (o) => {
+        ((o["robots"] as Record<string, unknown>[])[0] as Record<string, unknown>)["ready_at"] = bad;
+      });
+      expect(() => parseLog(text)).toThrow(LogError);
+    }
+  });
+});

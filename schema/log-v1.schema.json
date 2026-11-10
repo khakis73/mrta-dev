@@ -36,7 +36,8 @@
         "start": { "$ref": "#/$defs/point" },
         "speed": { "type": "integer", "minimum": 1 },
         "capacity": { "type": "integer", "minimum": 1 },
-        "skills": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "uniqueItems": true }
+        "skills": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "uniqueItems": true },
+        "ready_at": { "$ref": "#/$defs/tick" }
       }
     },
     "task": {

@@ -2,6 +2,8 @@
 
 - ロボットごとに、開始位置と適格なタスクを結ぶ**開いた経路**を `AddCircuit` で表す。
   アークの費用は「移動 + 作業」。待ちがない(ADR-0003)ので、完了時刻はアーク費用の和になる。
+  `ready_at`(ADR-0012)は、開始位置から出る弧の費用に足す。使わないロボットは弧を通らないので、
+  完了時刻は 0 のままになる(追加の変数は要らない)。到着時刻 `release_time` は見ない(ADR-0011)。
 - 段階1で makespan を最小化し(貪欲法の解をヒントにする)、段階2で
   `makespan ≤ 段階1の値` の下で総移動距離を最小化する。
 - 決定性: ロボットとタスクを ID の辞書順に並べ、`num_workers=1`、`random_seed=0`、
@@ -188,8 +190,9 @@ def _add_circuit(
             literals[(i, j)] = lit
             circuit.append((i, j, lit))
             distance = manhattan(location(i), location(j))
+            wait = robot.ready_at if i == 0 else 0  # 出発できるまで待つ(最初の弧にだけ足す)
             time_terms.append(
-                lit * (travel_ticks(distance, robot.speed) + tasks[j - 1].service_time)
+                lit * (wait + travel_ticks(distance, robot.speed) + tasks[j - 1].service_time)
             )
             distance_terms.append(lit * distance)
         # i → 0: i が最後のタスクなら経路の終端(費用0)。i=0 なら、ノード0の自己ループ
@@ -249,7 +252,7 @@ def _finish_times(scenario: Scenario, plan: Plan) -> dict[str, int]:
     finishes: dict[str, int] = {}
     for robot_id, task_ids in plan.routes.items():
         robot = robots[robot_id]
-        position, now = robot.start, 0
+        position, now = robot.start, (robot.ready_at if task_ids else 0)
         for task_id in task_ids:
             task = tasks[task_id]
             now += travel_ticks(manhattan(position, task.location), robot.speed)

@@ -4,7 +4,9 @@ version = "0.0.1"
 description = "異種ロボット(AMR + モバイルマニピュレーター)のタスク割当ソルバ比較シミュレータ"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "ortools>=9.15.6755",
+]
 
 [project.scripts]
 mrta = "mrta.cli:main"

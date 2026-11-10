@@ -8,18 +8,18 @@ from dataclasses import replace
 
 import pytest
 from hypothesis import given
+from hypothesis import strategies as st
 
 from mrta.model import (
     MANIPULATE,
     Robot,
     RobotKind,
-    Scenario,
     Task,
     validate_plan,
 )
 from mrta.solvers import SOLVERS, Solver, UnsolvableError
 from tests.builders import robot, scenario, task
-from tests.strategies import scenarios
+from tests.strategies import contract_scenarios
 
 solver_names = pytest.mark.parametrize("solver_name", sorted(SOLVERS))
 
@@ -37,29 +37,33 @@ def swap_kind(r: Robot) -> Robot:
 
 @solver_names
 class TestSolverContract:
-    @given(s=scenarios())
-    def test_plan_is_valid(self, solver_name: str, s: Scenario) -> None:
+    @given(data=st.data())
+    def test_plan_is_valid(self, solver_name: str, data: st.DataObject) -> None:
         """全タスクがちょうど1回割当、スキル・容量制約を満たす。"""
+        s = data.draw(contract_scenarios(solver_name))
         validate_plan(s, make(solver_name).solve(s))
 
-    @given(s=scenarios())
-    def test_is_deterministic(self, solver_name: str, s: Scenario) -> None:
+    @given(data=st.data())
+    def test_is_deterministic(self, solver_name: str, data: st.DataObject) -> None:
         """同じシナリオなら、呼び直しても、別のインスタンスでも同じ Plan。"""
+        s = data.draw(contract_scenarios(solver_name))
         solver = make(solver_name)
         first = solver.solve(s)
         assert solver.solve(s) == first
         assert make(solver_name).solve(s) == first
 
-    @given(s=scenarios())
-    def test_ignores_robot_kind(self, solver_name: str, s: Scenario) -> None:
+    @given(data=st.data())
+    def test_ignores_robot_kind(self, solver_name: str, data: st.DataObject) -> None:
         """ソルバはスキルと容量だけを見る。kind を入れ替えても結果は変わらない。"""
+        s = data.draw(contract_scenarios(solver_name))
         swapped = replace(s, robots=tuple(swap_kind(r) for r in s.robots))
         solver = make(solver_name)
         assert solver.solve(swapped) == solver.solve(s)
 
-    @given(s=scenarios())
-    def test_ignores_robot_order(self, solver_name: str, s: Scenario) -> None:
+    @given(data=st.data())
+    def test_ignores_robot_order(self, solver_name: str, data: st.DataObject) -> None:
         """ロボットの並び順に依存しない(同点の解消はIDで決まる)。"""
+        s = data.draw(contract_scenarios(solver_name))
         reordered = replace(s, robots=tuple(reversed(s.robots)))
         solver = make(solver_name)
         assert solver.solve(reordered) == solver.solve(s)

@@ -1,6 +1,6 @@
 # ADR-0011: 動的なタスク到着(モデル・実行の意味・ログ・生成器)
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-10
 
 ## Context

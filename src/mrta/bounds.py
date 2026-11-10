@@ -18,6 +18,10 @@ def task_lower_bound(scenario: Scenario) -> int:
     どの Plan でも、タスク `t` は適格なロボット `r` が実行し、`r` の完了時刻は `t` の完了時刻以上。
     経由すると移動時間は直行より短くならない(`ceil(a/v) + ceil(b/v) ≥ ceil((a+b)/v)` と
     三角不等式)ので、`t` の完了は直行の時刻以上になる。タスクが0件なら 0。
+
+    動的な到着(ADR-0011)では、`t` の完了は `release_time + service_time` 以上でもある
+    (先回りの移動はない。直前の位置は分からないので、移動時間は 0 とする)。
+    静的(`release_time = 0`)では、これは直行の時刻以下なので結果は変わらない。
     適格なロボットがいないタスクは、下界を定義できないので `ValueError`。
     """
     bound = 0
@@ -25,11 +29,11 @@ def task_lower_bound(scenario: Scenario) -> int:
         eligible = scenario.eligible_robots(task)
         if not eligible:
             raise ValueError(f"適格なロボットがいないタスク: {task.id}")
-        earliest = min(
+        direct = min(
             travel_ticks(manhattan(r.start, task.location), r.speed) + task.service_time
             for r in eligible
         )
-        bound = max(bound, earliest)
+        bound = max(bound, direct, task.release_time + task.service_time)
     return bound
 
 

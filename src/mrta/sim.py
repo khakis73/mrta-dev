@@ -3,8 +3,12 @@
 実行の意味は**ここだけが持つ**。ビューアは、ここが出す時間区間(segment)を読んで描くだけで、
 移動時間などを再計算しない。
 
-- ロボットは `start` から出発し、`Plan` の順に「移動 → 作業」を行う。最後のタスクの後は帰還しない。
-- ロボット同士は干渉しない(待ちなし)。完了時刻は自分の経路だけで決まる。
+- ロボットは `start` から出発し、`Plan` の順に「(待機)→ 移動 → 作業」を行う。
+  最後のタスクの後は帰還しない。
+- 各タスクの移動の開始は `max(直前の完了時刻, release_time)`(ADR-0011)。待つのは出発前だけで、
+  到着前に先回りして移動することはない。待機はセグメントにしない(時間の隙間になる)。
+  全タスクの `release_time` が 0 なら待機は生じず、従来(ADR-0003)と同じ結果になる。
+- ロボット同士は干渉しない。完了時刻は自分の経路と、そのタスクの到着時刻だけで決まる。
 - 移動時間は `ceil(距離 / 速度)` ティック。
 """
 
@@ -39,7 +43,7 @@ class Segment:
 class RobotMetrics:
     finish: int  # 完了時刻
     distance: int  # 移動距離(マンハッタン)
-    busy: int  # 稼働時間 = 移動(ceil 後のティック数)+ 作業
+    busy: int  # 稼働時間 = 移動(ceil 後のティック数)+ 作業。待機は含めない
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +88,7 @@ def simulate(scenario: Scenario, plan: Plan) -> SimulationResult:
         busy = 0
         for task_id in task_ids:
             task = tasks[task_id]
+            now = max(now, task.release_time)  # 到着まで出発を待つ(稼働に含めない)
 
             move_distance = manhattan(position, task.location)
             move_ticks = travel_ticks(move_distance, robot.speed)

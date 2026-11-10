@@ -86,7 +86,9 @@ def test_every_choice_minimizes_the_simulated_finish_time(s: Scenario) -> None:
     貪欲法の選択を1つずつ再現し、各タスクについて「適格な各ロボットの経路の末尾に足したときの
     完了時刻」を**シミュレータで**測る。貪欲法が選んだロボットが、その最小(同点はID順)であること。
     完了時刻の計算を二重実装している(ADR-0003)ため、両者のずれをここで検出する。
+    貪欲法は到着時刻を見ない静的なソルバ(ADR-0011)なので、静的なシナリオ(到着 0)で確かめる。
     """
+    s = replace(s, tasks=tuple(replace(t, release_time=0) for t in s.tasks))
     plan = GreedySolver().solve(s)
     owner = {tid: rid for rid, tids in plan.routes.items() for tid in tids}
 

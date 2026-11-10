@@ -1,0 +1,11 @@
+{"schema_version":1,"type":"header"}
+{"height":10,"robots":[{"capacity":10,"id":"r0","kind":"amr","skills":["carry"],"speed":3,"start":[6,6]},{"capacity":3,"id":"r1","kind":"mobile_manipulator","skills":["carry","manipulate"],"speed":1,"start":[0,4]}],"seed":0,"tasks":[{"demand":5,"id":"t0","location":[8,7],"release_time":4,"required_skill":"carry","service_time":4},{"demand":3,"id":"t1","location":[5,9],"release_time":8,"required_skill":"manipulate","service_time":2},{"demand":2,"id":"t2","location":[4,2],"release_time":2,"required_skill":"carry","service_time":5}],"type":"scenario","width":10}
+{"config":{},"name":"greedy","type":"solver"}
+{"routes":{"r0":["t0","t2"],"r1":["t1"]},"type":"plan"}
+{"from":[6,6],"kind":"move","robot":"r0","t0":4,"t1":5,"task":"t0","to":[8,7],"type":"segment"}
+{"from":[8,7],"kind":"service","robot":"r0","t0":5,"t1":9,"task":"t0","to":[8,7],"type":"segment"}
+{"from":[0,4],"kind":"move","robot":"r1","t0":8,"t1":18,"task":"t1","to":[5,9],"type":"segment"}
+{"from":[8,7],"kind":"move","robot":"r0","t0":9,"t1":12,"task":"t2","to":[4,2],"type":"segment"}
+{"from":[4,2],"kind":"service","robot":"r0","t0":12,"t1":17,"task":"t2","to":[4,2],"type":"segment"}
+{"from":[5,9],"kind":"service","robot":"r1","t0":18,"t1":20,"task":"t1","to":[5,9],"type":"segment"}
+{"available_total":40,"busy_total":25,"makespan":20,"per_robot":{"r0":{"busy":13,"distance":12,"finish":17},"r1":{"busy":12,"distance":10,"finish":20}},"total_distance":22,"type":"metrics"}

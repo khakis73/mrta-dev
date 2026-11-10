@@ -39,6 +39,11 @@ def _parser() -> argparse.ArgumentParser:
     gen.add_argument(
         "--manipulate-percent", type=int, help="操作スキルを要するタスクの割合(整数%%)"
     )
+    gen.add_argument(
+        "--arrival-window",
+        type=int,
+        help="タスクの到着時刻を [0, N] の一様乱数で引く(0 なら静的。ADR-0011)",
+    )
 
     pub = commands.add_parser(
         "publish", help="公開するログとマニフェストを書き出す(Pages のビルド用)"
@@ -58,7 +63,8 @@ def _parser() -> argparse.ArgumentParser:
 def _describe(c: GeneratorConfig) -> str:
     return (
         f"width={c.width} height={c.height} amr={c.n_amr} manipulators={c.n_mobile_manipulators} "
-        f"tasks={c.n_tasks} manipulate-percent={c.manipulate_percent}"
+        f"tasks={c.n_tasks} manipulate-percent={c.manipulate_percent} "
+        f"arrival-window={c.arrival_window}"
     )
 
 
@@ -72,6 +78,7 @@ def _scenario(args: argparse.Namespace, parser: argparse.ArgumentParser) -> Scen
             "n_mobile_manipulators": args.manipulators,
             "n_tasks": args.tasks,
             "manipulate_percent": args.manipulate_percent,
+            "arrival_window": args.arrival_window,
         }.items()
         if value is not None
     }

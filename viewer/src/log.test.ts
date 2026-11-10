@@ -4,6 +4,7 @@ import { golden, joined, lines } from "./test-utils";
 
 const TINY = golden("tiny-greedy");
 const DEFAULT = golden("default-greedy");
+const DYNAMIC = golden("dynamic-greedy");
 
 function replaceLine(text: string, index: number, edit: (o: Record<string, unknown>) => void): string {
   const ls = lines(text);
@@ -123,5 +124,36 @@ describe("parseLog: 読む側の規則(ADR-0004)", () => {
     ["metrics の負の値", 10, (o: Record<string, unknown>) => { o["makespan"] = -1; }, /makespan/],
   ])("不正な値を拒否する: %s", (_name, index, edit, message) => {
     expect(() => parseLog(replaceLine(TINY, index, edit))).toThrow(message);
+  });
+});
+
+describe("動的な到着(release_time。ADR-0011)", () => {
+  it("静的なログ(release_time が無い)は、全タスクの到着が 0", () => {
+    expect(parseLog(TINY).scenario.tasks.map((t) => t.releaseTime)).toEqual([0, 0, 0]);
+  });
+
+  it("動的な golden file の到着時刻を読める", () => {
+    const log = parseLog(DYNAMIC);
+    expect(log.scenario.tasks.map((t) => [t.id, t.releaseTime])).toEqual([
+      ["t0", 4],
+      ["t1", 8],
+      ["t2", 2],
+    ]);
+  });
+
+  it("待機(時間の隙間)があっても読める: 最初の区間は到着時刻から始まる", () => {
+    const log = parseLog(DYNAMIC);
+    const first = log.segments.find((g) => g.task === "t0");
+    expect(first?.t0).toBe(4);
+    expect(log.metrics.makespan).toBe(20);
+  });
+
+  it("release_time が負・小数・文字列なら拒否する", () => {
+    for (const bad of [-1, 1.5, "3"]) {
+      const text = replaceLine(DYNAMIC, 1, (o) => {
+        ((o["tasks"] as Record<string, unknown>[])[0] as Record<string, unknown>)["release_time"] = bad;
+      });
+      expect(() => parseLog(text)).toThrow(LogError);
+    }
   });
 });

@@ -70,6 +70,9 @@ class TestEntityValidation:
             {"id": ""},
             {"demand": 0},
             {"service_time": -1},
+            {"release_time": -1},
+            {"release_time": 1.5},
+            {"release_time": True},
             {"location": (0, -2)},
             {"required_skill": ""},
         ],
@@ -80,6 +83,10 @@ class TestEntityValidation:
 
     def test_zero_service_time_is_allowed(self) -> None:
         assert task(service_time=0).service_time == 0
+
+    def test_release_time_defaults_to_zero_which_means_static(self) -> None:
+        assert task().release_time == 0
+        assert task(release_time=7).release_time == 7
 
     def test_scenario_rejects_duplicate_ids_and_out_of_bounds(self) -> None:
         with pytest.raises(ModelError, match="重複"):

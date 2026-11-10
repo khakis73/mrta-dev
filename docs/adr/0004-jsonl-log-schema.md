@@ -65,7 +65,9 @@
 (上は説明用に短くした例。キーは実際の出力と同じくソート済み。)
 
 - **`scenario`**: `seed`、`width`、`height`、`robots`(`id`、`kind`、`start`、`speed`、`capacity`、
-  `skills`)、`tasks`(`id`、`location`、`required_skill`、`demand`、`service_time`)。
+  `skills`)、`tasks`(`id`、`location`、`required_skill`、`demand`、`service_time`、
+  任意の `release_time`)。`release_time`(到着時刻。ADR-0011)は**正のときだけ書く**。
+  無ければ 0(静的)として読む。
   `robots` と `tasks` は **IDの辞書順**、`skills` は**辞書順**に並べる。
 - **`solver`**: `name` と `config`(結果を左右する設定。例: `num_workers`、時間制限)。
   再現に必要な設定は、ここに残す。

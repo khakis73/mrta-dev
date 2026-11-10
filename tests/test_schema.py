@@ -88,6 +88,15 @@ def test_unknown_extra_fields_are_allowed(type_: str) -> None:
     validator.validate(line)
 
 
+def test_release_time_is_optional_for_tasks() -> None:
+    """ADR-0011: 任意のフィールド。無い(= 0)ログも、書かれたログも有効。"""
+    line = valid("scenario")
+    assert "release_time" not in line["tasks"][0]
+    validator.validate(line)
+    line["tasks"][0]["release_time"] = 7
+    validator.validate(line)
+
+
 def test_unknown_line_types_are_allowed() -> None:
     validator.validate({"type": "annotation", "text": "future"})
 
@@ -129,6 +138,9 @@ def mutated(type_: str, edit: Any) -> dict[str, Any]:
         ("scenario", lambda ln: ln["robots"][0].update(skills=["carry", "carry"])),
         ("scenario", lambda ln: ln["tasks"][0].update(demand=0)),
         ("scenario", lambda ln: ln["tasks"][0].update(service_time=-1)),
+        ("scenario", lambda ln: ln["tasks"][0].update(release_time=-1)),  # 負の到着
+        ("scenario", lambda ln: ln["tasks"][0].update(release_time=1.5)),  # 浮動小数点
+        ("scenario", lambda ln: ln["tasks"][0].update(release_time="3")),
         ("solver", lambda ln: ln["config"].update(limit=1.5)),  # config に浮動小数点
         ("solver", lambda ln: ln["config"].update(limit=None)),
         ("solver", lambda ln: ln["config"].update(limit=[1])),

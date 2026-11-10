@@ -3,10 +3,12 @@
 乱数は `random.Random(seed)` だけを使い、グローバルの乱数には触れない。
 **乱数を引く順序は契約**であり、変えるとシードごとのシナリオが変わる
 (固定シードの golden file や統計の比較が壊れる)。順序を変えるときは明示的に扱う。
+動的な到着時刻(`arrival_window`)の抽選は、既存の抽選の**後**に別のループで引く(ADR-0011)。
+`arrival_window = 0` のときは何も引かないので、静的なシナリオはシードごとに変わらない。
 """
 
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from mrta.model import (
     CARRY,
@@ -35,6 +37,9 @@ class GeneratorConfig:
     mm_speed: int = 1
     mm_capacity: int = 3
     max_service_time: int = 5
+    arrival_window: int = (
+        0  # 0 なら静的。正なら release_time を [0, arrival_window] の一様乱数で引く
+    )
 
     def __post_init__(self) -> None:
         require_int("width", self.width, minimum=1)
@@ -48,6 +53,7 @@ class GeneratorConfig:
         require_int("mm_speed", self.mm_speed, minimum=1)
         require_int("mm_capacity", self.mm_capacity, minimum=1)
         require_int("max_service_time", self.max_service_time, minimum=1)
+        require_int("arrival_window", self.arrival_window, minimum=0)
         if self.manipulate_percent > 100:
             raise ModelError(f"manipulate_percent は 100 以下: {self.manipulate_percent}")
         if self.n_amr + self.n_mobile_manipulators < 1:
@@ -107,6 +113,10 @@ def generate(seed: int, config: GeneratorConfig | None = None) -> Scenario:
                 service_time=rng.randint(1, cfg.max_service_time),
             )
         )
+
+    if cfg.arrival_window > 0:
+        # 既存の抽選の後に、タスクID順(生成順)で引く。静的な乱数列を変えない。
+        tasks = [replace(t, release_time=rng.randint(0, cfg.arrival_window)) for t in tasks]
 
     return Scenario(
         seed=seed,

@@ -10,7 +10,11 @@ seeds = st.integers(-(2**31), 2**31)
 
 @st.composite
 def configs(
-    draw: st.DrawFn, *, max_robots_per_kind: int = 4, max_tasks: int = 30
+    draw: st.DrawFn,
+    *,
+    max_robots_per_kind: int = 4,
+    max_tasks: int = 30,
+    max_arrival_window: int = 30,
 ) -> GeneratorConfig:
     n_amr = draw(st.integers(0, max_robots_per_kind))
     n_mm = draw(st.integers(0 if n_amr > 0 else 1, max_robots_per_kind))
@@ -26,6 +30,7 @@ def configs(
         mm_speed=draw(st.integers(1, 5)),
         mm_capacity=draw(st.integers(1, 12)),
         max_service_time=draw(st.integers(1, 8)),
+        arrival_window=draw(st.integers(0, max_arrival_window)),
     )
 
 
@@ -36,19 +41,33 @@ def scenarios(draw: st.DrawFn) -> Scenario:
 
 @st.composite
 def small_scenarios(
-    draw: st.DrawFn, *, max_robots_per_kind: int = 2, max_tasks: int = 6
+    draw: st.DrawFn,
+    *,
+    max_robots_per_kind: int = 2,
+    max_tasks: int = 6,
+    max_arrival_window: int = 0,
 ) -> Scenario:
-    """厳密解のソルバ(CP-SAT)や全探索を回せる規模のシナリオ。"""
-    config = draw(configs(max_robots_per_kind=max_robots_per_kind, max_tasks=max_tasks))
+    """厳密解のソルバ(CP-SAT)や全探索を回せる規模のシナリオ。
+
+    既定は**静的**(到着の窓 0)。静的ソルバのモデルは到着時刻を見ないので、モデルの値と
+    シミュレータの値の一致や、全探索との一致は、静的なシナリオでだけ成り立つ(ADR-0011)。
+    """
+    config = draw(
+        configs(
+            max_robots_per_kind=max_robots_per_kind,
+            max_tasks=max_tasks,
+            max_arrival_window=max_arrival_window,
+        )
+    )
     return generate(draw(seeds), config)
 
 
 # 契約テストで、ソルバごとに使うシナリオの戦略。指定がなければ `scenarios()`。
 # 厳密解・メタヒューリスティックのソルバは規模が大きいと遅い(ADR-0007、0009)ので、小さな規模に絞る。
 CONTRACT_SCENARIOS: dict[str, st.SearchStrategy[Scenario]] = {
-    "cpsat": small_scenarios(max_robots_per_kind=2, max_tasks=6),
+    "cpsat": small_scenarios(max_robots_per_kind=2, max_tasks=6, max_arrival_window=30),
     # Routing(GLS)は1例あたり数百 ms かかりうる。大きな戦略(30タスク)では契約テストが2分を超えた。
-    "routing": small_scenarios(max_robots_per_kind=2, max_tasks=6),
+    "routing": small_scenarios(max_robots_per_kind=2, max_tasks=6, max_arrival_window=30),
 }
 
 

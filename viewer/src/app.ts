@@ -37,6 +37,9 @@ function h<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/** 動的なログ(到着が 0 より後のタスクがある)のときだけ出す、盤面の凡例。盤面にはテキストを描かない。 */
+export const ARRIVAL_LEGEND = "薄い点線の丸: まだ現れていないタスク(到着前)";
+
 function scenarioSummary({ scenario }: Log): string {
   return (
     `シード ${scenario.seed} ・ 格子 ${scenario.width}×${scenario.height} ・ ` +
@@ -129,7 +132,14 @@ function createPanel(log: Log, suffix: string, heading: "h2" | "h3"): Panel {
   return {
     replay,
     summary,
-    board: h("div", { class: "board-wrap" }, board.svg),
+    board: h(
+      "div",
+      { class: "board-wrap" },
+      board.svg,
+      ...(replay.isDynamic
+        ? [h("p", { class: "legend", "data-legend": "arrival" }, ARRIVAL_LEGEND)]
+        : []),
+    ),
     robotsSection: h("section", {}, h(heading, {}, "ロボット"), robotTable),
     metricsSection: h("section", {}, h(heading, {}, "指標"), metricList),
     update,

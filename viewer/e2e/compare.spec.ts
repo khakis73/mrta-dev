@@ -11,6 +11,9 @@ function golden(name: string): string {
 }
 const GREEDY = golden("greedy-trap-greedy");
 const HUNGARIAN = golden("greedy-trap-hungarian");
+// 同じ動的シナリオ(到着 t0=4、t1=8、t2=2)を、静的ソルバとローリングホライズンで解いたもの。
+const DYNAMIC_STATIC = golden("dynamic-greedy");
+const DYNAMIC_ROLLING = golden("dynamic-rolling-greedy");
 
 const MANIFEST = JSON.stringify({
   manifest_version: 1,
@@ -41,6 +44,45 @@ async function seek(page: Page, t: number): Promise<void> {
 
 const robot = (page: Page, side: "a" | "b", id: string) =>
   page.locator(`#board-${side} [data-robot="${id}"]`);
+
+test.describe("2画面比較: 動的な到着", () => {
+  async function openDynamic(page: Page): Promise<void> {
+    await serve(page, { "a.jsonl": DYNAMIC_STATIC, "b.jsonl": DYNAMIC_ROLLING });
+    await page.goto("/?log=data/a.jsonl&log=data/b.jsonl");
+  }
+  const unreleased = (page: Page, side: "a" | "b") =>
+    page.locator(`#board-${side} [data-status="unreleased"]`);
+  const status = (page: Page, side: "a" | "b", id: string) =>
+    page.locator(`#board-${side} [data-task="${id}"]`);
+
+  test("同じシナリオなので、到着前のタスクは両画面で同じ(1つの時刻で同期する)", async ({ page }) => {
+    await openDynamic(page);
+    await expect(page.locator('[data-panel="a"] h2')).toHaveText("A: greedy");
+    await expect(page.locator('[data-panel="b"] h2')).toHaveText("B: rolling-greedy");
+    for (const [t, expected] of [[0, 3], [3, 2], [5, 1], [8, 0]] as const) {
+      await seek(page, t);
+      await expect(unreleased(page, "a")).toHaveCount(expected);
+      await expect(unreleased(page, "b")).toHaveCount(expected);
+    }
+  });
+
+  test("凡例は、画面ごとに1つずつ(盤面の直下)", async ({ page }) => {
+    await openDynamic(page);
+    await expect(page.locator('[data-legend="arrival"]')).toHaveCount(2);
+    await expect(page.locator('#board-a ~ [data-legend="arrival"]')).toHaveCount(1);
+    await expect(page.locator('#board-b ~ [data-legend="arrival"]')).toHaveCount(1);
+  });
+
+  test("到着後の扱いはソルバで違う: ローリングは到着済みの t2 を先に取る", async ({ page }) => {
+    await openDynamic(page);
+    // t=5: 静的(A)は t0 の作業中で t2 は未着手のまま。ローリング(B)は t2 の作業中(t2 は 2 から出発、作業 [4,9])。
+    await seek(page, 5);
+    await expect(status(page, "a", "t2")).toHaveAttribute("data-status", "pending");
+    await expect(status(page, "a", "t0")).toHaveAttribute("data-status", "serving");
+    await expect(status(page, "b", "t2")).toHaveAttribute("data-status", "serving");
+    await expect(status(page, "b", "t0")).toHaveAttribute("data-status", "pending");
+  });
+});
 
 test.describe("2画面比較", () => {
   test("左右にソルバ名と指標の比較(手計算した値)が表示される", async ({ page }) => {

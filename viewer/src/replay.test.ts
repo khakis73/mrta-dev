@@ -5,6 +5,9 @@ import { golden } from "./test-utils";
 
 const tiny = new Replay(parseLog(golden("tiny-greedy")));
 const big = new Replay(parseLog(golden("default-greedy")));
+// 動的な到着(ADR-0011): t0 は到着 4、t1 は到着 8、t2 は到着 2。r0 は t0 → t2、r1 は t1。
+const dynamic = new Replay(parseLog(golden("dynamic-greedy")));
+const dynamicRolling = new Replay(parseLog(golden("dynamic-rolling-greedy")));
 
 describe("positionAlong: x 方向に進んでから y 方向", () => {
   it("x を先に進める", () => {
@@ -108,17 +111,77 @@ describe("Replay: default-greedy で成り立つ性質", () => {
     }
   });
 
-  it("タスクの状態は pending → serving → done の順にしか進まない", () => {
-    const rank = { pending: 0, serving: 1, done: 2 } as const;
-    for (const task of log.scenario.tasks) {
-      let previous = 0;
-      for (const t of ticks) {
-        const now = rank[big.taskStatusAt(task.id, t)];
-        expect(now).toBeGreaterThanOrEqual(previous);
-        previous = now;
+  it("タスクの状態は unreleased → pending → serving → done の順にしか進まない", () => {
+    const rank = { unreleased: 0, pending: 1, serving: 2, done: 3 } as const;
+    for (const replay of [big, dynamic, dynamicRolling]) {
+      const times = Array.from({ length: replay.makespan * 4 + 1 }, (_, i) => i / 4);
+      for (const task of replay.log.scenario.tasks) {
+        let previous = 0;
+        for (const t of times) {
+          const now = rank[replay.taskStatusAt(task.id, t)];
+          expect(now).toBeGreaterThanOrEqual(previous);
+          previous = now;
+        }
+        expect(replay.taskStatusAt(task.id, replay.makespan)).toBe("done");
       }
-      expect(big.taskStatusAt(task.id, big.makespan)).toBe("done");
     }
+  });
+});
+
+describe("Replay: 到着前のタスク(unreleased。ADR-0011)", () => {
+  it("到着時刻の手前までは unreleased、ちょうどから pending", () => {
+    // t0 は到着 4: 3.99 までは現れていない。4 から到着済みで未着手。
+    expect(dynamic.taskStatusAt("t0", 0)).toBe("unreleased");
+    expect(dynamic.taskStatusAt("t0", 3.99)).toBe("unreleased");
+    expect(dynamic.taskStatusAt("t0", 4)).toBe("pending");
+    // t1 は到着 8。r1 は 8 に出発する(移動中は pending)。作業は 18 から。
+    expect(dynamic.taskStatusAt("t1", 7.99)).toBe("unreleased");
+    expect(dynamic.taskStatusAt("t1", 8)).toBe("pending");
+    expect(dynamic.taskStatusAt("t1", 17.99)).toBe("pending");
+    expect(dynamic.taskStatusAt("t1", 18)).toBe("serving");
+    expect(dynamic.taskStatusAt("t1", 20)).toBe("done");
+  });
+
+  it("到着済みなら、ロボットが向かっていなくても pending(unreleased ではない)", () => {
+    // t2 は到着 2。静的ソルバの Plan では r0 が t0 の後に t2 へ向かう(t0 の作業が [5,9]、t2 は 9 から移動)。
+    expect(dynamic.taskStatusAt("t2", 1.99)).toBe("unreleased");
+    expect(dynamic.taskStatusAt("t2", 2)).toBe("pending");
+    expect(dynamic.taskStatusAt("t2", 8.99)).toBe("pending"); // 到着済みだが、r0 は t0 の作業中
+    expect(dynamic.taskStatusAt("t2", 12)).toBe("serving");
+  });
+
+  it("同じシナリオでも、ローリングは順序が違う(到着済みの t2 を先に取る)", () => {
+    // ローリング: r0 は t2 (到着 2) へ 2 から出発し、作業は [4,9]。t0 (到着 4) は後。
+    expect(dynamicRolling.taskStatusAt("t2", 2)).toBe("pending");
+    expect(dynamicRolling.taskStatusAt("t2", 4)).toBe("serving");
+    expect(dynamicRolling.taskStatusAt("t0", 4)).toBe("pending"); // 到着したが、r0 は t2 の作業中
+    expect(dynamicRolling.taskStatusAt("t0", 12)).toBe("serving");
+  });
+
+  it("静的なログ(到着が全て 0)では、unreleased は一度も現れない", () => {
+    for (const replay of [tiny, big]) {
+      const times = Array.from({ length: replay.makespan * 4 + 1 }, (_, i) => i / 4);
+      for (const task of replay.log.scenario.tasks) {
+        for (const t of times) {
+          expect(replay.taskStatusAt(task.id, t)).not.toBe("unreleased");
+        }
+      }
+    }
+  });
+
+  it("動的かどうかと、最後の到着時刻", () => {
+    expect(dynamic.isDynamic).toBe(true);
+    expect(dynamic.lastRelease).toBe(8);
+    expect(dynamicRolling.lastRelease).toBe(8);
+    expect(tiny.isDynamic).toBe(false);
+    expect(tiny.lastRelease).toBe(0);
+    expect(big.isDynamic).toBe(false);
+  });
+
+  it("負の時刻は、どのタスクの到着よりも前(静的でも unreleased)。UI からは届かないが、壊れない", () => {
+    expect(dynamic.taskStatusAt("t0", -1)).toBe("unreleased");
+    expect(tiny.taskStatusAt("t0", -1)).toBe("unreleased");
+    expect(tiny.taskStatusAt("t0", 0)).toBe("pending"); // 到着 0 は t=0 から到着済み
   });
 });
 

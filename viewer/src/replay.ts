@@ -7,7 +7,11 @@
 import type { Log, Metrics, Point, Segment } from "./log";
 
 export type Activity = "idle" | "moving" | "servicing" | "done";
-export type TaskStatus = "pending" | "serving" | "done";
+/**
+ * タスクの状態。`unreleased` は、まだ現れていない(到着前。ADR-0011)。
+ * 到着時刻ちょうどから `pending`(到着済みで未着手)になる。
+ */
+export type TaskStatus = "unreleased" | "pending" | "serving" | "done";
 
 export interface RobotState {
   position: readonly [number, number];
@@ -44,6 +48,7 @@ export class Replay {
   private readonly segmentsByRobot = new Map<string, Segment[]>();
   private readonly completion = new Map<string, number>();
   private readonly serviceStart = new Map<string, number>();
+  private readonly releaseTime = new Map<string, number>();
   private readonly startOf = new Map<string, Point>();
 
   constructor(readonly log: Log) {
@@ -51,6 +56,9 @@ export class Replay {
     for (const r of log.scenario.robots) {
       this.startOf.set(r.id, r.start);
       this.segmentsByRobot.set(r.id, []);
+    }
+    for (const t of log.scenario.tasks) {
+      this.releaseTime.set(t.id, t.releaseTime);
     }
     for (const g of log.segments) {
       this.segmentsByRobot.get(g.robot)?.push(g);
@@ -111,6 +119,20 @@ export class Replay {
     return { position, activity: t >= last.t1 ? "done" : "idle", taskId: null };
   }
 
+  /** 最後のタスクが現れる時刻。静的なログ(全タスクの到着が 0)なら 0。 */
+  get lastRelease(): number {
+    let last = 0;
+    for (const v of this.releaseTime.values()) {
+      last = Math.max(last, v);
+    }
+    return last;
+  }
+
+  /** 動的なログか(到着が 0 より後のタスクがある)。 */
+  get isDynamic(): boolean {
+    return this.lastRelease > 0;
+  }
+
   taskStatusAt(taskId: string, t: number): TaskStatus {
     const done = this.completion.get(taskId);
     if (done === undefined) {
@@ -120,6 +142,9 @@ export class Replay {
       return "done";
     }
     const started = this.serviceStart.get(taskId);
-    return started !== undefined && t >= started ? "serving" : "pending";
+    if (started !== undefined && t >= started) {
+      return "serving";
+    }
+    return t < (this.releaseTime.get(taskId) ?? 0) ? "unreleased" : "pending";
   }
 }

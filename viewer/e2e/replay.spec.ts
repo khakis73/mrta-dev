@@ -7,6 +7,11 @@ const TINY = readFileSync(
   fileURLToPath(new URL("../../tests/golden/tiny-greedy.jsonl", import.meta.url)),
   "utf-8",
 );
+// 動的な到着(ADR-0011): t0 は到着 4、t1 は到着 8、t2 は到着 2。
+const DYNAMIC = readFileSync(
+  fileURLToPath(new URL("../../tests/golden/dynamic-greedy.jsonl", import.meta.url)),
+  "utf-8",
+);
 
 async function open(page: Page, body: string = TINY): Promise<void> {
   await page.route("**/data/test.jsonl", (route) =>
@@ -73,6 +78,43 @@ test.describe("表示", () => {
     await expect(cell(page, "r1", "activity")).toHaveText("完了");
     await expect(page.locator('#board [data-status="done"]')).toHaveCount(3);
     await expect(page.locator("#play")).toHaveText("もう一度");
+  });
+
+  test("到着前のタスクは unreleased(薄く表示)で、到着時刻から pending になる", async ({ page }) => {
+    await open(page, DYNAMIC);
+    const task = (id: string) => page.locator(`#board [data-task="${id}"]`);
+
+    // t=0: どのタスクもまだ現れていない
+    await expect(page.locator('#board [data-status="unreleased"]')).toHaveCount(3);
+    // t=3: t2 (到着 2) だけが現れた。t0 (到着 4)、t1 (到着 8) はまだ
+    await seek(page, 3);
+    await expect(task("t2")).toHaveAttribute("data-status", "pending");
+    await expect(task("t0")).toHaveAttribute("data-status", "unreleased");
+    await expect(task("t1")).toHaveAttribute("data-status", "unreleased");
+    // t=4: t0 が現れ、ロボットが作業を始める(移動 [4,5]、作業 [5,9])
+    await seek(page, 4);
+    await expect(task("t0")).toHaveAttribute("data-status", "pending");
+    // t=8: t1 が現れる
+    await seek(page, 8);
+    await expect(task("t1")).toHaveAttribute("data-status", "pending");
+    await expect(page.locator('#board [data-status="unreleased"]')).toHaveCount(0);
+    // 終端: 全て完了
+    await seek(page, 20);
+    await expect(page.locator('#board [data-status="done"]')).toHaveCount(3);
+  });
+
+  test("動的なログにだけ、到着前の凡例が出る(静的には出ない)", async ({ page }) => {
+    await open(page, DYNAMIC);
+    await expect(page.locator('[data-legend="arrival"]')).toHaveText(
+      "薄い点線の丸: まだ現れていないタスク(到着前)",
+    );
+    await open(page);
+    await expect(page.locator('[data-legend="arrival"]')).toHaveCount(0);
+  });
+
+  test("静的なログでは、unreleased は現れない", async ({ page }) => {
+    await open(page);
+    await expect(page.locator('#board [data-status="unreleased"]')).toHaveCount(0);
   });
 
   test("ログの文字列は HTML として解釈されない", async ({ page }) => {
@@ -156,6 +198,19 @@ test.describe("盤面のスクリーンショット", () => {
       await open(page);
       await seek(page, t);
       await expect(page.locator("#board")).toHaveScreenshot(`tiny-greedy-t${t}.png`);
+    });
+  }
+
+  // 到着前のタスクが薄く表示されること(ADR-0011)。状態が混在する時刻を撮る。
+  for (const t of [0, 3, 6]) {
+    test(`dynamic-greedy の t=${t}`, async ({ page }) => {
+      await open(page, DYNAMIC);
+      await seek(page, t);
+      // 到着前の丸は細く薄い線で、既定の threshold(0.2)だと、透明度を変えても差に数えられず、
+      // 見た目の回帰を検出できない(opacity 0.45 → 1 を試して確認した)。このケースだけ下げる。
+      await expect(page.locator("#board")).toHaveScreenshot(`dynamic-greedy-t${t}.png`, {
+        threshold: 0.1,
+      });
     });
   }
 });

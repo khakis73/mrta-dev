@@ -4,6 +4,7 @@ from mrta.solvers.base import ConfigValue, Solver, UnsolvableError, require_solv
 from mrta.solvers.cpsat import CpSatConfig, CpSatResult, CpSatSolver, solve_cpsat
 from mrta.solvers.greedy import GreedySolver
 from mrta.solvers.hungarian import HungarianSolver
+from mrta.solvers.rolling import RollingResult, RollingSolver, rolling_of, solve_rolling
 from mrta.solvers.routing import RoutingConfig, RoutingResult, RoutingSolver, solve_routing
 
 # 名前 → ソルバの生成。契約テストはここにある全てのソルバに対して走る。
@@ -15,7 +16,18 @@ SOLVERS: Mapping[str, Callable[[], Solver]] = {
     "routing": RoutingSolver,
 }
 
+# ローリングホライズン版(ADR-0012)。静的な `SOLVERS` を基底にする。`SOLVERS` には入れない:
+# 静的なシナリオ(到着が全て0)では基底と同じ結果になり、静的なベンチマークの表に同じ行が増えるため。
+ONLINE_SOLVERS: Mapping[str, Callable[[], Solver]] = {
+    f"rolling-{name}": rolling_of(factory) for name, factory in SOLVERS.items()
+}
+
+# CLI と契約テストの対象(静的 + ローリング)。
+ALL_SOLVERS: Mapping[str, Callable[[], Solver]] = {**SOLVERS, **ONLINE_SOLVERS}
+
 __all__ = [
+    "ALL_SOLVERS",
+    "ONLINE_SOLVERS",
     "SOLVERS",
     "ConfigValue",
     "CpSatConfig",
@@ -23,6 +35,8 @@ __all__ = [
     "CpSatSolver",
     "GreedySolver",
     "HungarianSolver",
+    "RollingResult",
+    "RollingSolver",
     "RoutingConfig",
     "RoutingResult",
     "RoutingSolver",
@@ -30,5 +44,6 @@ __all__ = [
     "UnsolvableError",
     "require_solvable",
     "solve_cpsat",
+    "solve_rolling",
     "solve_routing",
 ]

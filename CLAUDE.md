@@ -49,7 +49,7 @@ Phase 4 は「動的: ローリングホライズン」だけ(オークション
 - [x] 動的到着の実装(モデル、シミュレータ、ログ・スキーマ・golden、生成器)
 - [x] ADR-0012: ローリングホライズン(`ready_at`、駆動役 `RollingSolver`、動的ベンチマーク、オフライン最適は全探索で代替)
 - [x] `ready_at` と4ソルバの対応(モデル・シミュレータ・ログ・下界)
-- [ ] `RollingSolver`(`ONLINE_SOLVERS`、CLI、契約テスト)
+- [x] `RollingSolver`(`ONLINE_SOLVERS`、CLI、契約テスト)
 - [ ] 動的ベンチマーク(`dynamic-small`・`dynamic-tiny`、全探索のオフライン最適、README に結果)
 - [ ] ビューア: 到着前のタスクの表示(必要ならADR)
 

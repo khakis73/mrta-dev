@@ -1,6 +1,7 @@
 """全ソルバ共通の契約テスト。
 
-`mrta.solvers.SOLVERS` に登録されたソルバ全てに対して走る。新しいソルバは登録するだけで、
+`mrta.solvers.ALL_SOLVERS`(静的 + ローリング)に登録されたソルバ全てに対して走る。
+新しいソルバは登録するだけで、
 ここにある契約(ADR-0003: Scenario → Plan の純関数、kind を見ない、決定的)を満たすか検査される。
 """
 
@@ -17,15 +18,15 @@ from mrta.model import (
     Task,
     validate_plan,
 )
-from mrta.solvers import SOLVERS, Solver, UnsolvableError
+from mrta.solvers import ALL_SOLVERS, Solver, UnsolvableError
 from tests.builders import robot, scenario, task
 from tests.strategies import contract_scenarios
 
-solver_names = pytest.mark.parametrize("solver_name", sorted(SOLVERS))
+solver_names = pytest.mark.parametrize("solver_name", sorted(ALL_SOLVERS))
 
 
 def make(solver_name: str) -> Solver:
-    return SOLVERS[solver_name]()
+    return ALL_SOLVERS[solver_name]()
 
 
 def swap_kind(r: Robot) -> Robot:
@@ -103,4 +104,4 @@ class TestSolverContract:
 
 
 def test_registry_is_not_empty() -> None:
-    assert SOLVERS, "契約テストの対象が無い"
+    assert ALL_SOLVERS, "契約テストの対象が無い"

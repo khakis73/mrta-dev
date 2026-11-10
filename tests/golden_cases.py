@@ -52,6 +52,16 @@ CASES = (
         ),
         solver="greedy",
     ),
+    # 同じ動的シナリオをローリングホライズンで解いたもの(ADR-0012)。
+    # dynamic-greedy と scenario 行が一致し、ビューアの2画面比較の契約テストに使える。
+    GoldenCase(
+        name="dynamic-rolling-greedy",
+        seed=0,
+        config=GeneratorConfig(
+            width=10, height=10, n_amr=1, n_mobile_manipulators=1, n_tasks=3, arrival_window=8
+        ),
+        solver="rolling-greedy",
+    ),
     # 手作りシナリオ: 同じシナリオを2つのソルバで解いた対(ビューアの2画面比較の契約テスト用)。
     GoldenCase(name="greedy-trap-greedy", catalog="greedy-trap", solver="greedy"),
     GoldenCase(name="greedy-trap-hungarian", catalog="greedy-trap", solver="hungarian"),

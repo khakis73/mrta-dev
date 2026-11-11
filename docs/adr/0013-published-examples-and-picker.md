@@ -1,6 +1,6 @@
 # ADR-0013: 公開する例の拡張と、比較の組を選べるビューア
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-11
 
 ## Context

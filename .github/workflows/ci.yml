@@ -56,6 +56,8 @@ jobs:
 
   viewer-e2e:
     runs-on: ubuntu-latest
+    # 通常は1分前後。apt の配布先に届かないときに、10分も待たない。
+    timeout-minutes: 8
     defaults:
       run:
         working-directory: viewer
@@ -67,6 +69,13 @@ jobs:
           cache: npm
           cache-dependency-path: viewer/package-lock.json
       - run: npm ci
+      # apt の配布先に届かないとき(名前解決の一時的な障害など)、早く失敗させる。
+      # 既定のままだと、取得を何度も待って10分かかった。
+      - name: apt の取得に上限を付ける
+        run: |
+          printf '%s\n' 'Acquire::Retries "2";' 'Acquire::http::Timeout "20";' 'Acquire::https::Timeout "20";' \
+            | sudo tee /etc/apt/apt.conf.d/99fail-fast
+        working-directory: .
       # ブラウザは node_modules の中に入れる(グローバルに入れない)。
       - run: PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install --with-deps chromium
       - run: npm run e2e

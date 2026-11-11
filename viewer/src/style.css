@@ -110,3 +110,11 @@ dd { margin: 0; font-variant-numeric: tabular-nums; }
 @media (min-width: 48rem) {
   .panels { grid-template-columns: 1fr 1fr; }
 }
+
+#examples ul { padding-left: 1.1rem; }
+#examples li { margin: 0.4rem 0; }
+.example-title { font-weight: 600; }
+.example-pick { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; margin-top: 0.2rem; }
+.example-pick select { max-width: 100%; }
+.pick { display: inline-flex; gap: 0.3rem; align-items: center; max-width: 100%; }
+.same-log { color: var(--muted); font-size: 0.85rem; }

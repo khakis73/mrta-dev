@@ -4,7 +4,7 @@ import { createBoard, robotColor } from "./board";
 import { compareMetrics, scenarioMismatch } from "./compare";
 import type { MetricRow } from "./compare";
 import type { Log } from "./log";
-import { compareHref } from "./manifest";
+import { compareHref, initialPair, optionLabel } from "./manifest";
 import type { Example } from "./manifest";
 import { Player, frameSeconds } from "./player";
 import { Replay, utilizationText } from "./replay";
@@ -225,6 +225,68 @@ function createComparisonTable(rows: MetricRow[], nameA: string, nameB: string):
   );
 }
 
+/** 例の注記。見せるための例であり、代表的な結果ではない(ADR-0013)。 */
+export const EXAMPLES_NOTE =
+  "見せるために選んだ例で、代表的な結果ではない。結論は複数シードの統計で出す(README)。";
+/** 動的な例の注記。静的ソルバは到着を見ないが、未来のタスクを知っている(ADR-0011)。 */
+export const DYNAMIC_NOTE =
+  "動的な例: タスクが途中で現れる。「静的・到着を無視」のソルバは、到着時刻を見ないが、未来のタスクを知っている。";
+/** 同じログを A・B に選んだとき。 */
+export const SAME_LOG_NOTE = "A と B に同じものは選べない";
+
+/** ちょうど2本の例は、従来どおり1本のリンク。3本以上は、A・B を選んでリンクを作る(ADR-0013)。 */
+function createExample(example: Example): HTMLElement {
+  if (example.logs.length === 2) {
+    return h("li", { "data-example": example.id }, h("a", { href: compareHref(example) ?? "#" }, example.title));
+  }
+
+  const [initialA, initialB] = initialPair(example);
+  const select = (name: "a" | "b", value: string): HTMLSelectElement =>
+    h(
+      "select",
+      { "aria-label": `${example.title} の ${name.toUpperCase()}`, "data-pick": name },
+      ...example.logs.map((l) =>
+        h("option", { value: l.solver, ...(l.solver === value ? { selected: "" } : {}) }, optionLabel(example, l.solver)),
+      ),
+    );
+  const pickA = select("a", initialA);
+  const pickB = select("b", initialB);
+  const link = h("a", { "data-compare": "true" }, "比較する");
+  const same = h("span", { class: "same-log", "data-same-log": "true", hidden: "" }, SAME_LOG_NOTE);
+
+  function refresh(): void {
+    const href = compareHref(example, pickA.value, pickB.value);
+    if (href === null) {
+      link.removeAttribute("href");
+      link.setAttribute("hidden", "");
+      same.removeAttribute("hidden");
+    } else {
+      link.setAttribute("href", href);
+      link.removeAttribute("hidden");
+      same.setAttribute("hidden", "");
+    }
+  }
+  pickA.addEventListener("change", refresh);
+  pickB.addEventListener("change", refresh);
+  refresh();
+
+  return h(
+    "li",
+    { "data-example": example.id },
+    h("div", { class: "example-title" }, example.title),
+    h(
+      "div",
+      { class: "example-pick" },
+      // ラベルと選択は1まとまり(折り返しても離れない)
+      h("label", { class: "pick" }, "A ", pickA),
+      h("label", { class: "pick" }, "B ", pickB),
+      link,
+      same,
+    ),
+    ...(example.dynamic ? [h("p", { class: "legend", "data-note": "dynamic" }, DYNAMIC_NOTE)] : []),
+  );
+}
+
 function createExamples(examples: Example[]): HTMLElement | null {
   if (examples.length === 0) {
     return null;
@@ -233,11 +295,8 @@ function createExamples(examples: Example[]): HTMLElement | null {
     "nav",
     { id: "examples", "aria-label": "比較の例" },
     h("h2", {}, "比較の例"),
-    h(
-      "ul",
-      {},
-      ...examples.map((e) => h("li", {}, h("a", { href: compareHref(e) }, e.title))),
-    ),
+    h("p", { class: "legend", "data-note": "examples" }, EXAMPLES_NOTE),
+    h("ul", {}, ...examples.map(createExample)),
   );
 }
 

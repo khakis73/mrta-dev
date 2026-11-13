@@ -35,6 +35,7 @@ class ManifestExample(TypedDict):
     title: str
     dynamic: bool
     default: Default
+    description: str
     logs: list[LogEntry]
 
 
@@ -90,6 +91,13 @@ class TestManifest:
         for example in manifest["examples"]:
             has_rolling = any(log["solver"].startswith("rolling-") for log in example["logs"])
             assert example["dynamic"] == by_id[example["id"]].dynamic == has_rolling, example["id"]
+
+    def test_every_example_has_a_description_for_the_screen(self, manifest: Manifest) -> None:
+        """画面に出る説明。id だけが並ぶと、何を見ればよいか分からない(ADR-0013)。"""
+        by_id = {e.id: e for e in examples()}
+        for example in manifest["examples"]:
+            assert example["description"].strip(), example["id"]
+            assert example["description"] == by_id[example["id"]].note, example["id"]
 
     def test_the_default_pair_names_two_distinct_published_solvers(
         self, manifest: Manifest
@@ -231,6 +239,35 @@ class TestExamplesShowWhatTheyClaim:
     def test_dynamic_tiny(self, out: Path) -> None:
         assert makespan(out, "dynamic-tiny", "greedy") == 40
         assert makespan(out, "dynamic-tiny", "rolling-greedy") == 33
+
+
+class TestDescriptionsStateTrueNumbers:
+    """説明(画面に出る)に書いた数値は、公開ログの値と一致する。ずれたら、説明か例を直す。
+
+    動的な例の静的 CP-SAT の値(38)は、静的な最適の中のどれが選ばれるかで変わりうる(版・OS)。
+    説明に数値を書いた行は、その値で固定する(ずれたら気づくため)。
+    """
+
+    @pytest.mark.parametrize(
+        ("example_id", "numbers"),
+        [
+            ("static-spread", {"greedy": 47, "hungarian": 25, "routing": 20, "cpsat": 20}),
+            ("static-15tasks", {"greedy": 61, "hungarian": 57, "routing": 40, "cpsat": 40}),
+            ("dynamic-rolling-wins", {"cpsat": 38, "rolling-cpsat": 25}),
+            (
+                "dynamic-rolling-loses",
+                {"greedy": 41, "rolling-greedy": 46, "cpsat": 41, "rolling-cpsat": 46},
+            ),
+            ("dynamic-tiny", {"greedy": 40, "rolling-greedy": 33}),
+        ],
+    )
+    def test_numbers_in_the_description_match_the_logs(
+        self, out: Path, manifest: Manifest, example_id: str, numbers: dict[str, int]
+    ) -> None:
+        description = next(e["description"] for e in manifest["examples"] if e["id"] == example_id)
+        for solver, value in numbers.items():
+            assert makespan(out, example_id, solver) == value, (example_id, solver)
+            assert str(value) in description, (example_id, solver, value)
 
 
 def test_demo_log_is_kept_for_the_viewer_default(out: Path) -> None:

@@ -34,7 +34,7 @@ class Example:
     scenario: Scenario
     dynamic: bool
     default: tuple[str, str]  # 最初に選ぶ A・B のソルバ名
-    note: str  # なぜこの例を選んだか(コードのコメント。マニフェストには出さない)
+    note: str  # 画面に出す説明(マニフェストの description)。何を見せる例か、どこを見るか
 
     def solver_names(self) -> list[str]:
         """公開するソルバ。静的 → ローリングの順、各群は名前順(ADR-0013)。
@@ -54,7 +54,11 @@ class Example:
 
 
 def examples() -> tuple[Example, ...]:
-    """公開する例。増やすときは、ここに足す(ADR-0013)。"""
+    """公開する例。増やすときは、ここに足す(ADR-0013)。
+
+    `note` は画面に出る説明(マニフェストの `description`)。**読み手に向けて**、何を見せる例か、
+    どこを見ればよいかを書く。数値は `tests/test_publish.py` で固定している(ずれたら選び直す)。
+    """
     dynamic = GeneratorConfig(arrival_window=ARRIVAL_WINDOW)
     tiny_dynamic = GeneratorConfig(
         n_amr=1, n_mobile_manipulators=2, n_tasks=5, arrival_window=ARRIVAL_WINDOW
@@ -66,36 +70,40 @@ def examples() -> tuple[Example, ...]:
             scenario=SCENARIOS["greedy-trap"](),
             dynamic=False,
             default=("greedy", "hungarian"),
-            note="貪欲法が先に取って損をする(手作り)",
+            note="手作りの例。貪欲法は、近いロボットに先に取らせて、もう一方のタスクが遠回りになる。"
+            "ハンガリアン法は2タスクを同時に見る。",
         ),
         Example(
             id="skill-trap",
             scenario=SCENARIOS["skill-trap"](),
             dynamic=False,
             default=("greedy", "hungarian"),
-            note="スキル制約の罠(手作り)",
+            note="手作りの例。運搬タスクを近いマニピュレーターが取り、そのロボットしかできない"
+            "操作タスクが待たされる(スキル制約が絡む失敗)。",
         ),
         Example(
             id=f"seed{DEMO_SEED}",
             scenario=generate(DEMO_SEED),
             dynamic=False,
             default=("greedy", "cpsat"),
-            note="既定の規模(4台・10タスク)。従来のデモと同じシード",
+            note="既定の規模(4台・10タスク)の、ふつうの例。貪欲法と CP-SAT で、"
+            "完了時間が大きく違う。",
         ),
         Example(
             id="static-spread",
             scenario=generate(11),
             dynamic=False,
             default=("greedy", "cpsat"),
-            note="ソルバの差が最大(4台・10タスク。40シードを調べて選んだ)。"
-            "貪欲 47、ハンガリアン 25、Routing・CP-SAT 20",
+            note="ソルバの差が最も大きい例(4台・10タスク。40シードから選んだ)。"
+            "完了時間は 貪欲 47、ハンガリアン 25、Routing・CP-SAT 20。",
         ),
         Example(
             id="static-15tasks",
             scenario=generate(1, GeneratorConfig(n_tasks=15)),
             dynamic=False,
             default=("greedy", "cpsat"),
-            note="規模を上げた例(4台・15タスク)。貪欲 61、ハンガリアン 57、Routing・CP-SAT 40",
+            note="規模を上げた例(4台・15タスク)。完了時間は 貪欲 61、ハンガリアン 57、"
+            "Routing・CP-SAT 40。",
         ),
         # --- 動的な例(静的なソルバ4つ + ローリング4つ。窓 20) ---
         Example(
@@ -103,24 +111,24 @@ def examples() -> tuple[Example, ...]:
             scenario=generate(11, dynamic),
             dynamic=True,
             default=("cpsat", "rolling-cpsat"),
-            note="ローリングが静的に大きく勝つ。貪欲 65 → ローリング貪欲 30。"
-            "静的な CP-SAT の 38 を、ローリング CP-SAT の 25 が大きく下回る"
-            "(到着を無視した「最適」は、動的では最適ではない)",
+            note="ローリングが静的に大きく勝つ例。到着を無視した静的な CP-SAT(完了時間 38)より、"
+            "到着を知ってから決めるローリング CP-SAT(25)のほうが短い。"
+            "「静的に最適」は、動的では最適ではない。",
         ),
         Example(
             id="dynamic-rolling-loses",
             scenario=generate(3, dynamic),
             dynamic=True,
             default=("cpsat", "rolling-cpsat"),
-            note="ローリングが基底によらず負ける(貪欲 41 → 46、CP-SAT 41 → 46)。"
-            "この到着の並びでは、未来を知る静的が有利。「いつも勝つ」という誤読を避けるための例",
+            note="ローリングが静的に負ける例(貪欲法でも CP-SAT でも 41 → 46)。"
+            "この到着の並びでは、未来を知っている静的が有利になる。いつも勝つわけではない。",
         ),
         Example(
             id="dynamic-tiny",
             scenario=generate(0, tiny_dynamic),
             dynamic=True,
             default=("greedy", "rolling-greedy"),
-            note="タスクが5つで、経路を目で追える動的な例(貪欲 40 → ローリング貪欲 33、CP-SAT 32)",
+            note="タスクが5つと少なく、経路を目で追いやすい例(貪欲 40 → ローリング貪欲 33)。",
         ),
     )
 
@@ -135,6 +143,7 @@ def build_manifest(items: tuple[Example, ...]) -> str:
                 "title": e.id,
                 "dynamic": e.dynamic,
                 "default": {"a": e.default[0], "b": e.default[1]},
+                "description": e.note,
                 "logs": [{"file": e.log_name(s), "solver": s} for s in e.solver_names()],
             }
             for e in items

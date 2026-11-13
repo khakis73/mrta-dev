@@ -41,6 +41,7 @@ describe("parseManifest: v1(後方互換)", () => {
         ],
         dynamic: false,
         defaultPair: null,
+        description: null,
       },
     ]);
   });
@@ -130,6 +131,46 @@ describe("parseManifest: v2", () => {
     const e = first(text);
     expect(e.defaultPair).toBeNull();
     expect(e.logs).toHaveLength(3);
+  });
+});
+
+describe("parseManifest: description(任意。ADR-0013)", () => {
+  const withDescription = (description: unknown) => ({
+    manifest_version: 2,
+    examples: [{ ...v2.examples[0], description }],
+  });
+
+  it("文字列なら読む", () => {
+    expect(first(withDescription("ローリングが静的に大きく勝つ")).description).toBe("ローリングが静的に大きく勝つ");
+  });
+
+  it("無ければ null", () => {
+    expect(first(v2).description).toBeNull();
+  });
+
+  it.each([
+    ["空文字", ""],
+    ["空白だけ", "   "],
+    ["数値", 1],
+    ["配列", ["a"]],
+    ["オブジェクト", { a: 1 }],
+    ["null", null],
+  ])("文字列でない・空なら null(例は捨てない): %s", (_label, value) => {
+    const e = first(withDescription(value));
+    expect(e.description).toBeNull();
+    expect(e.logs).toHaveLength(3);
+  });
+
+  it("v1 には description がない(あっても読まない)", () => {
+    const text = {
+      manifest_version: 1,
+      examples: [{ id: "x", title: "x", description: "v1 にはない", logs: ["a.jsonl", "b.jsonl"] }],
+    };
+    expect(first(text).description).toBeNull();
+  });
+
+  it("HTML のような文字列も、そのまま文字列として持つ(解釈しない)", () => {
+    expect(first(withDescription("<b>x</b>")).description).toBe("<b>x</b>");
   });
 });
 

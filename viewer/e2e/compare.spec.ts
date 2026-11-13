@@ -192,6 +192,7 @@ test.describe("比較の例: 組を選ぶ(マニフェスト v2。ADR-0013)", ()
         id: "dyn",
         title: "dyn",
         dynamic: true,
+        description: "動的な例の説明<b>(HTML は解釈されない)</b>",
         default: { a: "greedy", b: "rolling-greedy" },
         logs: [
           { file: "dyn-cpsat.jsonl", solver: "cpsat" },
@@ -203,6 +204,7 @@ test.describe("比較の例: 組を選ぶ(マニフェスト v2。ADR-0013)", ()
       {
         id: "greedy-trap",
         title: "greedy-trap",
+        description: "貪欲法が先に取って損をする",
         logs: [
           { file: "greedy-trap-greedy.jsonl", solver: "greedy" },
           { file: "greedy-trap-hungarian.jsonl", solver: "hungarian" },
@@ -275,11 +277,37 @@ test.describe("比較の例: 組を選ぶ(マニフェスト v2。ADR-0013)", ()
     await expect(page.locator('#examples [data-example="dyn"] [data-same-log]')).toBeHidden();
   });
 
-  test("注記: 見せるための例(全体)と、動的な例の静的ソルバ(動的な例だけ)", async ({ page }) => {
+  test("注記: 見せるための例と、動的な例の静的ソルバは、セクションに1回だけ", async ({ page }) => {
     await openV2(page);
     await expect(page.locator('#examples [data-note="examples"]')).toContainText("代表的な結果ではない");
-    await expect(page.locator('#examples [data-example="dyn"] [data-note="dynamic"]')).toContainText("未来のタスクを知っている");
-    await expect(page.locator('#examples [data-example="greedy-trap"] [data-note="dynamic"]')).toHaveCount(0);
+    await expect(page.locator('#examples [data-note="dynamic"]')).toHaveCount(1);
+    await expect(page.locator('#examples [data-note="dynamic"]')).toContainText("未来のタスクを知っている");
+  });
+
+  test("例ごとの説明が、選択の下(2本の例はリンクの下)に出る。HTML は解釈されない", async ({ page }) => {
+    await openV2(page);
+    await expect(page.locator('#examples [data-example="dyn"] [data-note="description"]')).toHaveText(
+      "動的な例の説明<b>(HTML は解釈されない)</b>",
+    );
+    await expect(page.locator('#examples [data-example="dyn"] [data-note="description"] b')).toHaveCount(0);
+    await expect(page.locator('#examples [data-example="greedy-trap"] [data-note="description"]')).toHaveText(
+      "貪欲法が先に取って損をする",
+    );
+  });
+
+  test("説明が無い例には、説明の段落を出さない", async ({ page }) => {
+    await serve(page, {
+      "manifest.json": JSON.stringify({
+        manifest_version: 2,
+        examples: [
+          { id: "plain", title: "plain", logs: [{ file: "a.jsonl", solver: "a" }, { file: "b.jsonl", solver: "b" }] },
+        ],
+      }),
+      "demo.jsonl": GREEDY,
+    });
+    await page.goto("/");
+    await expect(page.locator('#examples [data-example="plain"]')).toBeVisible();
+    await expect(page.locator('#examples [data-note="description"]')).toHaveCount(0);
   });
 
   test("スマホの幅でも、横スクロールが出ない", async ({ page }) => {

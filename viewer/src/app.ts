@@ -228,16 +228,28 @@ function createComparisonTable(rows: MetricRow[], nameA: string, nameB: string):
 /** 例の注記。見せるための例であり、代表的な結果ではない(ADR-0013)。 */
 export const EXAMPLES_NOTE =
   "見せるために選んだ例で、代表的な結果ではない。結論は複数シードの統計で出す(README)。";
-/** 動的な例の注記。静的ソルバは到着を見ないが、未来のタスクを知っている(ADR-0011)。 */
+/** 動的な例がある場合の注記(セクションに1回)。静的ソルバは到着を見ないが、未来を知っている(ADR-0011)。 */
 export const DYNAMIC_NOTE =
   "動的な例: タスクが途中で現れる。「静的・到着を無視」のソルバは、到着時刻を見ないが、未来のタスクを知っている。";
 /** 同じログを A・B に選んだとき。 */
 export const SAME_LOG_NOTE = "A と B に同じものは選べない";
 
+/** 例の説明(任意)。文字列として出す(HTML として解釈しない)。 */
+function describe(example: Example): HTMLElement[] {
+  return example.description === null
+    ? []
+    : [h("p", { class: "legend", "data-note": "description" }, example.description)];
+}
+
 /** ちょうど2本の例は、従来どおり1本のリンク。3本以上は、A・B を選んでリンクを作る(ADR-0013)。 */
 function createExample(example: Example): HTMLElement {
   if (example.logs.length === 2) {
-    return h("li", { "data-example": example.id }, h("a", { href: compareHref(example) ?? "#" }, example.title));
+    return h(
+      "li",
+      { "data-example": example.id },
+      h("a", { href: compareHref(example) ?? "#" }, example.title),
+      ...describe(example),
+    );
   }
 
   const [initialA, initialB] = initialPair(example);
@@ -283,7 +295,7 @@ function createExample(example: Example): HTMLElement {
       link,
       same,
     ),
-    ...(example.dynamic ? [h("p", { class: "legend", "data-note": "dynamic" }, DYNAMIC_NOTE)] : []),
+    ...describe(example),
   );
 }
 
@@ -296,6 +308,10 @@ function createExamples(examples: Example[]): HTMLElement | null {
     { id: "examples", "aria-label": "比較の例" },
     h("h2", {}, "比較の例"),
     h("p", { class: "legend", "data-note": "examples" }, EXAMPLES_NOTE),
+    // 動的な例の共通の注記は、例ごとに繰り返さず、セクションに1回だけ出す。
+    ...(examples.some((e) => e.dynamic)
+      ? [h("p", { class: "legend", "data-note": "dynamic" }, DYNAMIC_NOTE)]
+      : []),
     h("ul", {}, ...examples.map(createExample)),
   );
 }

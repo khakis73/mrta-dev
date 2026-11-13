@@ -24,6 +24,8 @@ export interface Example {
   dynamic: boolean;
   /** 最初に選ぶ組(ソルバ名)。無い・不正なら、先頭の2本 */
   defaultPair: readonly [string, string] | null;
+  /** この例が何を見せるか(任意。v2)。無い・文字列でない・空なら null。画面には文字列として出す */
+  description: string | null;
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -78,6 +80,10 @@ function parseDefault(raw: unknown, logs: ExampleLog[]): readonly [string, strin
   return null;
 }
 
+function parseDescription(raw: unknown): string | null {
+  return typeof raw === "string" && raw.trim() !== "" ? raw : null;
+}
+
 /** 不正・未対応の版なら空配列。不正な例だけを捨てる。 */
 export function parseManifest(text: string): Example[] {
   let data: unknown;
@@ -116,6 +122,7 @@ export function parseManifest(text: string): Example[] {
       logs,
       dynamic: version >= 2 && item["dynamic"] === true,
       defaultPair: version >= 2 ? parseDefault(item["default"], logs) : null,
+      description: version >= 2 ? parseDescription(item["description"]) : null,
     });
   }
   return examples;

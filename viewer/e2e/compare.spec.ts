@@ -183,6 +183,141 @@ test.describe("比較の例(マニフェスト)", () => {
   });
 });
 
+test.describe("比較の例: 組を選ぶ(マニフェスト v2。ADR-0013)", () => {
+  // 動的な例: 静的の貪欲法・CP-SAT(の代わりに同じログ)・ローリングの3本。UI の検証なので、同じシナリオなら足りる。
+  const V2 = JSON.stringify({
+    manifest_version: 2,
+    examples: [
+      {
+        id: "dyn",
+        title: "dyn",
+        dynamic: true,
+        description: "動的な例の説明<b>(HTML は解釈されない)</b>",
+        default: { a: "greedy", b: "rolling-greedy" },
+        logs: [
+          { file: "dyn-cpsat.jsonl", solver: "cpsat" },
+          { file: "dyn-greedy.jsonl", solver: "greedy" },
+          { file: "dyn-rolling-greedy.jsonl", solver: "rolling-greedy" },
+        ],
+      },
+      // v1 と同じ2本の例は、従来どおり1本のリンクのまま
+      {
+        id: "greedy-trap",
+        title: "greedy-trap",
+        description: "貪欲法が先に取って損をする",
+        logs: [
+          { file: "greedy-trap-greedy.jsonl", solver: "greedy" },
+          { file: "greedy-trap-hungarian.jsonl", solver: "hungarian" },
+        ],
+      },
+    ],
+  });
+
+  async function openV2(page: Page): Promise<void> {
+    await serve(page, {
+      "manifest.json": V2,
+      "demo.jsonl": GREEDY,
+      "dyn-cpsat.jsonl": DYNAMIC_STATIC,
+      "dyn-greedy.jsonl": DYNAMIC_STATIC,
+      "dyn-rolling-greedy.jsonl": DYNAMIC_ROLLING,
+      "greedy-trap-greedy.jsonl": GREEDY,
+      "greedy-trap-hungarian.jsonl": HUNGARIAN,
+    });
+    await page.goto("/");
+  }
+  const pick = (page: Page, side: "a" | "b") => page.locator(`#examples [data-example="dyn"] [data-pick="${side}"]`);
+  const link = (page: Page) => page.locator('#examples [data-example="dyn"] [data-compare]');
+
+  test("3本以上の例は選択、2本の例は従来どおりリンク1本", async ({ page }) => {
+    await openV2(page);
+    await expect(page.locator('#examples [data-example="dyn"] select')).toHaveCount(2);
+    await expect(page.locator('#examples [data-example="greedy-trap"] select')).toHaveCount(0);
+    await expect(page.locator('#examples [data-example="greedy-trap"] a')).toHaveAttribute(
+      "href",
+      "?log=data%2Fgreedy-trap-greedy.jsonl&log=data%2Fgreedy-trap-hungarian.jsonl",
+    );
+  });
+
+  test("既定の組が選ばれていて、選択肢に種別が添えられる", async ({ page }) => {
+    await openV2(page);
+    await expect(pick(page, "a")).toHaveValue("greedy");
+    await expect(pick(page, "b")).toHaveValue("rolling-greedy");
+    await expect(pick(page, "a").locator("option")).toHaveText([
+      "cpsat(静的・到着を無視)",
+      "greedy(静的・到着を無視)",
+      "rolling-greedy(ローリング)",
+    ]);
+    await expect(link(page)).toHaveAttribute(
+      "href",
+      "?log=data%2Fdyn-greedy.jsonl&log=data%2Fdyn-rolling-greedy.jsonl",
+    );
+  });
+
+  test("選択を変えると、リンクが変わり、開くと A・B の順で比較される", async ({ page }) => {
+    await openV2(page);
+    await pick(page, "a").selectOption("rolling-greedy");
+    await pick(page, "b").selectOption("cpsat");
+    await expect(link(page)).toHaveAttribute(
+      "href",
+      "?log=data%2Fdyn-rolling-greedy.jsonl&log=data%2Fdyn-cpsat.jsonl",
+    );
+    await link(page).click();
+    await expect(page.locator("#comparison")).toBeVisible();
+    await expect(page.locator('[data-panel="a"] h2')).toHaveText("A: rolling-greedy");
+    await expect(page.locator('[data-panel="b"] h2')).toHaveText("B: greedy"); // dyn-cpsat は貪欲法のログを流用
+  });
+
+  test("同じログを選ぶと、リンクが消えて理由が出る。直すと戻る", async ({ page }) => {
+    await openV2(page);
+    await pick(page, "b").selectOption("greedy");
+    await expect(link(page)).toBeHidden();
+    await expect(page.locator('#examples [data-example="dyn"] [data-same-log]')).toHaveText("A と B に同じものは選べない");
+    await pick(page, "b").selectOption("cpsat");
+    await expect(link(page)).toBeVisible();
+    await expect(page.locator('#examples [data-example="dyn"] [data-same-log]')).toBeHidden();
+  });
+
+  test("注記: 見せるための例と、動的な例の静的ソルバは、セクションに1回だけ", async ({ page }) => {
+    await openV2(page);
+    await expect(page.locator('#examples [data-note="examples"]')).toContainText("代表的な結果ではない");
+    await expect(page.locator('#examples [data-note="dynamic"]')).toHaveCount(1);
+    await expect(page.locator('#examples [data-note="dynamic"]')).toContainText("未来のタスクを知っている");
+  });
+
+  test("例ごとの説明が、選択の下(2本の例はリンクの下)に出る。HTML は解釈されない", async ({ page }) => {
+    await openV2(page);
+    await expect(page.locator('#examples [data-example="dyn"] [data-note="description"]')).toHaveText(
+      "動的な例の説明<b>(HTML は解釈されない)</b>",
+    );
+    await expect(page.locator('#examples [data-example="dyn"] [data-note="description"] b')).toHaveCount(0);
+    await expect(page.locator('#examples [data-example="greedy-trap"] [data-note="description"]')).toHaveText(
+      "貪欲法が先に取って損をする",
+    );
+  });
+
+  test("説明が無い例には、説明の段落を出さない", async ({ page }) => {
+    await serve(page, {
+      "manifest.json": JSON.stringify({
+        manifest_version: 2,
+        examples: [
+          { id: "plain", title: "plain", logs: [{ file: "a.jsonl", solver: "a" }, { file: "b.jsonl", solver: "b" }] },
+        ],
+      }),
+      "demo.jsonl": GREEDY,
+    });
+    await page.goto("/");
+    await expect(page.locator('#examples [data-example="plain"]')).toBeVisible();
+    await expect(page.locator('#examples [data-note="description"]')).toHaveCount(0);
+  });
+
+  test("スマホの幅でも、横スクロールが出ない", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await openV2(page);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
 test.describe("スマホの幅", () => {
   test.use({ viewport: { width: 375, height: 667 } });
 

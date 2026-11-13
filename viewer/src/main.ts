@@ -1,4 +1,5 @@
 import { mountApp } from "./app";
+import { loadText } from "./load";
 import { parseLog } from "./log";
 import type { Log } from "./log";
 import { MANIFEST_PATH, parseManifest } from "./manifest";
@@ -20,21 +21,10 @@ function showError(root: HTMLElement, message: string): void {
   root.replaceChildren(main);
 }
 
-async function loadText(path: string): Promise<Response> {
-  const url = new URL(path, document.baseURI);
-  // 公開サイトと同じオリジンのログだけを読む(ADR-0004: ログは Pages のビルドで生成して同梱する)。
-  if (url.origin !== location.origin) {
-    throw new Error("同じオリジンのログだけを読み込める");
-  }
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`ログを取得できなかった(HTTP ${response.status}): ${url.pathname}`);
-  }
-  return response;
-}
+const load = (path: string): Promise<Response> => loadText(path, document.baseURI, location.origin);
 
 async function loadLog(path: string): Promise<Log> {
-  const text = await (await loadText(path)).text();
+  const text = await (await load(path)).text();
   try {
     return parseLog(text);
   } catch (e) {
@@ -46,7 +36,7 @@ async function loadLog(path: string): Promise<Log> {
 /** 比較の例の一覧。補助なので、無い・読めない・未対応なら空(閲覧は妨げない)。 */
 async function loadExamples(): Promise<Example[]> {
   try {
-    return parseManifest(await (await loadText(MANIFEST_PATH)).text());
+    return parseManifest(await (await load(MANIFEST_PATH)).text());
   } catch {
     return [];
   }

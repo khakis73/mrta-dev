@@ -15,7 +15,7 @@ from mrta.catalog import SCENARIOS
 from mrta.logio import render_log, write_log
 from mrta.model import Scenario
 from mrta.scenario import GeneratorConfig, generate
-from mrta.solvers import ALL_SOLVERS, ONLINE_SOLVERS, SOLVERS, Solver
+from mrta.solvers import ALL_SOLVERS, ONLINE_SOLVERS, SOLVER_SUMMARIES, SOLVERS, Solver
 
 MANIFEST_VERSION = 2
 MANIFEST_NAME = "manifest.json"
@@ -135,8 +135,11 @@ def examples() -> tuple[Example, ...]:
 
 def build_manifest(items: tuple[Example, ...]) -> str:
     """マニフェスト v2(JSON)。ログと同じ規則で決定的に書く(キーをソート、空白なし、末尾に改行)。"""
+    published = sorted({s for e in items for s in e.solver_names()})
     obj = {
         "manifest_version": MANIFEST_VERSION,
+        # ソルバの説明(元は mrta.solvers.info)。公開するソルバの分だけ。ビューアが画面に出す。
+        "solvers": {name: SOLVER_SUMMARIES[name] for name in published},
         "examples": [
             {
                 "id": e.id,

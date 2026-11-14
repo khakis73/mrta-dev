@@ -5,7 +5,7 @@ import { compareMetrics, scenarioMismatch } from "./compare";
 import type { MetricRow } from "./compare";
 import type { Log } from "./log";
 import { compareHref, initialPair, optionLabel } from "./manifest";
-import type { Example } from "./manifest";
+import type { Example, SolverSummaries } from "./manifest";
 import { Player, frameSeconds } from "./player";
 import { Replay, utilizationText } from "./replay";
 import type { Activity } from "./replay";
@@ -242,7 +242,7 @@ function describe(example: Example): HTMLElement[] {
 }
 
 /** ちょうど2本の例は、従来どおり1本のリンク。3本以上は、A・B を選んでリンクを作る(ADR-0013)。 */
-function createExample(example: Example): HTMLElement {
+function createExample(example: Example, summaries: SolverSummaries): HTMLElement {
   if (example.logs.length === 2) {
     return h(
       "li",
@@ -265,8 +265,18 @@ function createExample(example: Example): HTMLElement {
   const pickB = select("b", initialB);
   const link = h("a", { "data-compare": "true" }, "比較する");
   const same = h("span", { class: "same-log", "data-same-log": "true", hidden: "" }, SAME_LOG_NOTE);
+  // 選んだソルバの説明。選択を変えると更新する(説明が無いソルバは、段落を空にして隠す)。
+  const noteA = h("p", { class: "legend", "data-solver-note": "a" });
+  const noteB = h("p", { class: "legend", "data-solver-note": "b" });
+  const showSolverNote = (note: HTMLElement, label: string, solver: string): void => {
+    const summary = summaries[solver];
+    note.textContent = summary === undefined ? "" : `${label}(${solver}): ${summary}`;
+    note.hidden = summary === undefined;
+  };
 
   function refresh(): void {
+    showSolverNote(noteA, "A", pickA.value);
+    showSolverNote(noteB, "B", pickB.value);
     const href = compareHref(example, pickA.value, pickB.value);
     if (href === null) {
       link.removeAttribute("href");
@@ -295,11 +305,13 @@ function createExample(example: Example): HTMLElement {
       link,
       same,
     ),
+    noteA,
+    noteB,
     ...describe(example),
   );
 }
 
-function createExamples(examples: Example[]): HTMLElement | null {
+function createExamples(examples: Example[], summaries: SolverSummaries): HTMLElement | null {
   if (examples.length === 0) {
     return null;
   }
@@ -312,13 +324,23 @@ function createExamples(examples: Example[]): HTMLElement | null {
     ...(examples.some((e) => e.dynamic)
       ? [h("p", { class: "legend", "data-note": "dynamic" }, DYNAMIC_NOTE)]
       : []),
-    h("ul", {}, ...examples.map(createExample)),
+    h("ul", {}, ...examples.map((e) => createExample(e, summaries))),
   );
 }
 
 export interface MountOptions {
   /** 比較の例(manifest.json)。空ならリンクを出さない */
   examples?: Example[];
+  /** ソルバ名 → 短い説明(manifest.json の solvers)。無ければ、説明を出さない */
+  solverSummaries?: SolverSummaries;
+}
+
+/** ソルバの説明(ログの solver.name で引く)。無ければ出さない。文字列として出す。 */
+function solverNote(summaries: SolverSummaries, solver: string): HTMLElement[] {
+  const summary = summaries[solver];
+  return summary === undefined
+    ? []
+    : [h("p", { class: "legend", "data-solver-summary": solver }, summary)];
 }
 
 /** 1つのログならリプレイ、2つなら同期した2画面比較。 */
@@ -342,7 +364,8 @@ export function mountApp(root: HTMLElement, logs: Log[], options: MountOptions =
   const player = new Player(end);
   const controls = createControls(end);
   const { playButton, slider, clock, speed } = controls;
-  const examples = createExamples(options.examples ?? []);
+  const summaries = options.solverSummaries ?? {};
+  const examples = createExamples(options.examples ?? [], summaries);
 
   const first = panels[0] as Panel;
   const second = panels[1];
@@ -351,7 +374,13 @@ export function mountApp(root: HTMLElement, logs: Log[], options: MountOptions =
       h(
         "main",
         { class: "app" },
-        h("header", {}, h("h1", {}, "mrta viewer"), first.summary),
+        h(
+          "header",
+          {},
+          h("h1", {}, "mrta viewer"),
+          first.summary,
+          ...solverNote(summaries, first.replay.log.solver.name),
+        ),
         first.board,
         controls.element,
         first.robotsSection,
@@ -365,6 +394,7 @@ export function mountApp(root: HTMLElement, logs: Log[], options: MountOptions =
         "section",
         { class: "panel", "data-panel": label.toLowerCase() },
         h("h2", {}, `${label}: ${name}`),
+        ...solverNote(summaries, name),
         p.board,
         p.robotsSection,
       );

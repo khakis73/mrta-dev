@@ -84,6 +84,35 @@ test.describe("2画面比較: 動的な到着", () => {
   });
 });
 
+test.describe("ソルバの説明(比較画面と1画面。ADR-0013)", () => {
+  const summaries = { greedy: "貪欲法の説明", "rolling-greedy": "ローリングの説明<b>(HTML)</b>" };
+  const manifest = JSON.stringify({ manifest_version: 2, examples: [], solvers: summaries });
+
+  test("比較画面: 各パネルの見出しの下に、そのソルバの説明が出る", async ({ page }) => {
+    await serve(page, { "manifest.json": manifest, "a.jsonl": DYNAMIC_STATIC, "b.jsonl": DYNAMIC_ROLLING });
+    await page.goto("/?log=data/a.jsonl&log=data/b.jsonl");
+    await expect(page.locator('[data-panel="a"] [data-solver-summary]')).toHaveText("貪欲法の説明");
+    await expect(page.locator('[data-panel="b"] [data-solver-summary]')).toHaveText(
+      "ローリングの説明<b>(HTML)</b>",
+    );
+    await expect(page.locator('[data-panel="b"] [data-solver-summary] b')).toHaveCount(0); // 解釈されない
+  });
+
+  test("1画面: 概要の下に、そのソルバの説明が出る", async ({ page }) => {
+    await serve(page, { "manifest.json": manifest, "a.jsonl": DYNAMIC_STATIC });
+    await page.goto("/?log=data/a.jsonl");
+    await expect(page.locator("[data-solver-summary]")).toHaveText("貪欲法の説明");
+  });
+
+  test("マニフェストが無い・説明が無いソルバでは、何も出ない(閲覧は妨げない)", async ({ page }) => {
+    await serve(page, { "a.jsonl": DYNAMIC_STATIC });
+    await page.route("**/data/manifest.json", (route) => route.fulfill({ status: 404 }));
+    await page.goto("/?log=data/a.jsonl");
+    await expect(page.locator("#board")).toBeVisible();
+    await expect(page.locator("[data-solver-summary]")).toHaveCount(0);
+  });
+});
+
 test.describe("2画面比較", () => {
   test("左右にソルバ名と指標の比較(手計算した値)が表示される", async ({ page }) => {
     await openCompare(page);
@@ -213,9 +242,17 @@ test.describe("比較の例: 組を選ぶ(マニフェスト v2。ADR-0013)", ()
     ],
   });
 
-  async function openV2(page: Page): Promise<void> {
+  // ソルバの説明(マニフェストの solvers。ADR-0013)。HTML は解釈されない。
+  const SUMMARIES = {
+    cpsat: "CP-SAT の説明",
+    greedy: "貪欲法の説明<b>(HTML)</b>",
+    "rolling-greedy": "ローリングの説明",
+  };
+  const V2_WITH_SUMMARIES = JSON.stringify({ ...JSON.parse(V2), solvers: SUMMARIES });
+
+  async function openV2(page: Page, manifest: string = V2): Promise<void> {
     await serve(page, {
-      "manifest.json": V2,
+      "manifest.json": manifest,
       "demo.jsonl": GREEDY,
       "dyn-cpsat.jsonl": DYNAMIC_STATIC,
       "dyn-greedy.jsonl": DYNAMIC_STATIC,
@@ -308,6 +345,32 @@ test.describe("比較の例: 組を選ぶ(マニフェスト v2。ADR-0013)", ()
     await page.goto("/");
     await expect(page.locator('#examples [data-example="plain"]')).toBeVisible();
     await expect(page.locator('#examples [data-note="description"]')).toHaveCount(0);
+  });
+
+  const noteOf = (page: Page, side: "a" | "b") =>
+    page.locator(`#examples [data-example="dyn"] [data-solver-note="${side}"]`);
+
+  test("選んだ A・B のソルバの説明が出る。選択を変えると更新される", async ({ page }) => {
+    await openV2(page, V2_WITH_SUMMARIES);
+    await expect(noteOf(page, "a")).toHaveText("A(greedy): 貪欲法の説明<b>(HTML)</b>");
+    await expect(noteOf(page, "b")).toHaveText("B(rolling-greedy): ローリングの説明");
+    await pick(page, "a").selectOption("cpsat");
+    await expect(noteOf(page, "a")).toHaveText("A(cpsat): CP-SAT の説明");
+    await expect(noteOf(page, "b")).toHaveText("B(rolling-greedy): ローリングの説明"); // B は変わらない
+  });
+
+  test("説明が HTML として解釈されない(タグが文字として出る)", async ({ page }) => {
+    await openV2(page, V2_WITH_SUMMARIES);
+    await expect(noteOf(page, "a").locator("b")).toHaveCount(0);
+  });
+
+  test("説明が無いソルバは、段落を出さない(説明の無いマニフェストでも同じ)", async ({ page }) => {
+    await openV2(page, JSON.stringify({ ...JSON.parse(V2), solvers: { greedy: "貪欲法の説明" } }));
+    await expect(noteOf(page, "a")).toBeVisible();
+    await expect(noteOf(page, "b")).toBeHidden(); // rolling-greedy の説明は無い
+    await openV2(page); // solvers そのものが無い
+    await expect(noteOf(page, "a")).toBeHidden();
+    await expect(noteOf(page, "b")).toBeHidden();
   });
 
   test("スマホの幅でも、横スクロールが出ない", async ({ page }) => {

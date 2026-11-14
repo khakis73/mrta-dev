@@ -128,6 +128,33 @@ export function parseManifest(text: string): Example[] {
   return examples;
 }
 
+/** ソルバ名 → 短い説明(マニフェスト v2 の `solvers`。ADR-0013)。画面に文字列として出す。 */
+export type SolverSummaries = Readonly<Record<string, string>>;
+
+/** 不正・未対応・無い場合は空。名前・説明が文字列で、説明が空でないものだけを読む。 */
+export function parseSolverSummaries(text: string): SolverSummaries {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return {};
+  }
+  if (!isRecord(data) || data["manifest_version"] !== 2) {
+    return {};
+  }
+  const raw = data["solvers"];
+  if (!isRecord(raw)) {
+    return {};
+  }
+  const summaries: Record<string, string> = {};
+  for (const [name, summary] of Object.entries(raw)) {
+    if (typeof summary === "string" && summary.trim() !== "") {
+      summaries[name] = summary;
+    }
+  }
+  return summaries;
+}
+
 /** 最初に選ぶ A・B のソルバ名。既定が無ければ、先頭の2本。 */
 export function initialPair(example: Example): readonly [string, string] {
   if (example.defaultPair !== null) {

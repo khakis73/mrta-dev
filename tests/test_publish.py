@@ -16,7 +16,7 @@ from mrta.logio import check_log_structure
 from mrta.model import Plan
 from mrta.publish import DEMO_NAME, MANIFEST_NAME, MANIFEST_VERSION, examples
 from mrta.sim import simulate
-from mrta.solvers import ALL_SOLVERS, ONLINE_SOLVERS, SOLVERS
+from mrta.solvers import ALL_SOLVERS, ONLINE_SOLVERS, SOLVER_SUMMARIES, SOLVERS
 from tests.golden_cases import GOLDEN_DIR
 
 
@@ -41,6 +41,7 @@ class ManifestExample(TypedDict):
 
 class Manifest(TypedDict):
     manifest_version: int
+    solvers: dict[str, str]
     examples: list[ManifestExample]
 
 
@@ -91,6 +92,13 @@ class TestManifest:
         for example in manifest["examples"]:
             has_rolling = any(log["solver"].startswith("rolling-") for log in example["logs"])
             assert example["dynamic"] == by_id[example["id"]].dynamic == has_rolling, example["id"]
+
+    def test_solver_summaries_cover_exactly_the_published_solvers(self, manifest: Manifest) -> None:
+        """画面に出すソルバの説明。公開するソルバの分だけ、元(mrta.solvers.info)と同じ文面で出す。"""
+        published = {log["solver"] for e in manifest["examples"] for log in e["logs"]}
+        assert set(manifest["solvers"]) == published
+        for name, summary in manifest["solvers"].items():
+            assert summary == SOLVER_SUMMARIES[name], name
 
     def test_every_example_has_a_description_for_the_screen(self, manifest: Manifest) -> None:
         """画面に出る説明。id だけが並ぶと、何を見ればよいか分からない(ADR-0013)。"""

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareHref, initialPair, optionLabel, parseManifest } from "./manifest";
+import { compareHref, initialPair, optionLabel, parseManifest, parseSolverSummaries } from "./manifest";
 
 // v1: 例ごとにちょうど2本(文字列)。
 const v1 = {
@@ -248,5 +248,44 @@ describe("compareHref", () => {
     expect(compareHref(e, "greedy", "greedy")).toBeNull();
     expect(compareHref(e, "greedy", "nope")).toBeNull();
     expect(compareHref(e, "nope", "greedy")).toBeNull();
+  });
+});
+
+describe("parseSolverSummaries: ソルバの説明(v2 の solvers。ADR-0013)", () => {
+  const withSolvers = (solvers: unknown, version = 2) =>
+    JSON.stringify({ manifest_version: version, examples: [], solvers });
+
+  it("名前 → 説明を読む", () => {
+    expect(parseSolverSummaries(withSolvers({ greedy: "貪欲法の説明", cpsat: "CP-SAT の説明" }))).toEqual({
+      greedy: "貪欲法の説明",
+      cpsat: "CP-SAT の説明",
+    });
+  });
+
+  it("solvers が無ければ空(後方互換: 説明が無くても動く)", () => {
+    expect(parseSolverSummaries(JSON.stringify(v2))).toEqual({});
+  });
+
+  it("v1 には solvers がない(あっても読まない)", () => {
+    expect(parseSolverSummaries(withSolvers({ greedy: "x" }, 1))).toEqual({});
+  });
+
+  it.each([
+    ["JSON ではない", "not json"],
+    ["オブジェクトではない", "[]"],
+    ["solvers が配列", withSolvers(["a"])],
+    ["solvers が文字列", withSolvers("x")],
+    ["solvers が null", withSolvers(null)],
+  ])("読めないときは空: %s", (_label, text) => {
+    expect(parseSolverSummaries(text)).toEqual({});
+  });
+
+  it("説明が文字列でない・空・空白だけのソルバだけを捨てる(他は残る)", () => {
+    const text = withSolvers({ ok: "説明", empty: "", blank: "   ", num: 1, obj: { a: 1 }, nul: null });
+    expect(parseSolverSummaries(text)).toEqual({ ok: "説明" });
+  });
+
+  it("HTML のような文字列も、そのまま文字列として持つ(解釈しない)", () => {
+    expect(parseSolverSummaries(withSolvers({ greedy: "<b>x</b>" }))).toEqual({ greedy: "<b>x</b>" });
   });
 });

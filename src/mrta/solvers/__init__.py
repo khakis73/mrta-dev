@@ -4,6 +4,7 @@ from mrta.solvers.base import ConfigValue, Solver, UnsolvableError, require_solv
 from mrta.solvers.cpsat import CpSatConfig, CpSatResult, CpSatSolver, solve_cpsat
 from mrta.solvers.greedy import GreedySolver
 from mrta.solvers.hungarian import HungarianSolver
+from mrta.solvers.info import SOLVER_SUMMARIES
 from mrta.solvers.rolling import RollingResult, RollingSolver, rolling_of, solve_rolling
 from mrta.solvers.routing import RoutingConfig, RoutingResult, RoutingSolver, solve_routing
 
@@ -28,6 +29,7 @@ ALL_SOLVERS: Mapping[str, Callable[[], Solver]] = {**SOLVERS, **ONLINE_SOLVERS}
 __all__ = [
     "ALL_SOLVERS",
     "ONLINE_SOLVERS",
+    "SOLVER_SUMMARIES",
     "SOLVERS",
     "ConfigValue",
     "CpSatConfig",
